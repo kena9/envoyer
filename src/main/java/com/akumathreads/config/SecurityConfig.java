@@ -59,10 +59,8 @@ public class SecurityConfig {
                     "/privacy-policy", "/terms-of-service", "/refund-and-shipping",
                     "/css/**", "/js/**", "/img/**", "/images/**", "/error"
                 ).permitAll()
-                // Cart count endpoint is public so the navbar badge works for guests
-                .requestMatchers("/api/cart/count").permitAll()
-                // All other /api/cart/** operations require authentication
-                .requestMatchers("/api/cart/**").authenticated()
+                // Cart is session-based — guests can add items freely; login is only required at checkout
+                .requestMatchers("/api/cart/**").permitAll()
                 .requestMatchers("/account/**", "/checkout/**", "/orders/**", "/order/**").authenticated()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

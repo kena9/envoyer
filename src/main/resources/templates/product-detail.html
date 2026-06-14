@@ -13,10 +13,7 @@
 
 <style>
     .font-display { font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; }
-    .size-radio:checked + .size-label {
-        border-color: #e50914;
-        color: #e50914;
-    }
+    .size-btn.selected { border-color: #e50914 !important; color: #e50914 !important; }
 </style>
 
 <main class="flex-1 max-w-7xl mx-auto w-full px-6 sm:px-10 py-10">
@@ -110,31 +107,30 @@
                 </p>
                 <div class="flex flex-wrap gap-2">
                     <th:block th:each="variant : ${product.variants}">
-                        <label th:if="${variant.stockQty > 0}" class="cursor-pointer">
-                            <input type="radio"
-                                   name="sizeVariant"
-                                   class="size-radio sr-only"
-                                   th:value="${variant.id}"
-                                   th:data-size="${variant.size.name()}"
-                                   th:data-stock="${variant.stockQty}"/>
-                            <span class="size-label font-mono text-[11px] tracking-[0.15em] uppercase
-                                         border border-[#222] px-4 py-2.5 block cursor-pointer
-                                         hover:border-[#e50914] hover:text-[#e50914] transition-colors duration-200">
-                                <span th:text="${variant.size.name()}">M</span>
-                            </span>
-                        </label>
-                        <label th:unless="${variant.stockQty > 0}">
-                            <span class="font-mono text-[11px] tracking-[0.15em] uppercase
-                                         border border-[#111] px-4 py-2.5 block opacity-30
-                                         cursor-not-allowed line-through text-[#555]">
-                                <span th:text="${variant.size.name()}">M</span>
-                            </span>
-                            <!-- Low stock warning on in-stock sizes near zero -->
-                        </label>
+                        <!-- In-stock: plain button — no radio quirks, works on all browsers -->
+                        <button th:if="${variant.stockQty > 0}"
+                                type="button"
+                                class="size-btn font-mono text-[11px] tracking-[0.15em] uppercase
+                                       border border-[#222] px-4 py-2.5
+                                       hover:border-[#e50914] hover:text-[#e50914] transition-colors duration-200"
+                                th:data-variant-id="${variant.id}"
+                                th:data-size="${variant.size.name()}"
+                                th:data-stock="${variant.stockQty}"
+                                onclick="selectSize(this)"
+                                th:text="${variant.size.name()}">M</button>
+                        <!-- Out-of-stock: non-interactive span -->
+                        <span th:unless="${variant.stockQty > 0}"
+                              class="font-mono text-[11px] tracking-[0.15em] uppercase
+                                     border border-[#111] px-4 py-2.5 opacity-30
+                                     cursor-not-allowed line-through text-[#555]"
+                              th:text="${variant.size.name()}">M</span>
                     </th:block>
                 </div>
-                <!-- Per-size low stock warning -->
+                <!-- Per-size low stock / size-not-selected messages -->
                 <p id="low-stock-msg" class="font-mono text-[10px] text-[#e50914] tracking-[0.15em] uppercase mt-3 hidden"></p>
+                <p id="size-error-msg" class="font-mono text-[10px] text-[#e50914] tracking-[0.15em] uppercase mt-3 hidden">
+                    ← SELECT A SIZE TO CONTINUE
+                </p>
             </div>
 
             <!-- ── Quantity selector ──────────────────────────────────────── -->
@@ -231,46 +227,47 @@
 <div th:replace="~{fragments/layout :: themeScript}"></div>
 
 <script>
-    let selectedVariantId = null;
-    let selectedStock = 0;
-    let quantity = 1;
+    var selectedVariantId = null;
+    var selectedStock = 0;
+    var quantity = 1;
 
-    // Wire up size radio buttons
-    document.querySelectorAll('.size-radio').forEach(function(radio) {
-        radio.addEventListener('change', function() {
-            selectedVariantId = this.value;
-            selectedStock = parseInt(this.dataset.stock, 10);
-            quantity = 1;
-            updateQtyDisplay();
-            document.getElementById('selected-size-label').textContent =
-                '— ' + this.dataset.size;
-
-            var lowMsg = document.getElementById('low-stock-msg');
-            if (selectedStock < 10) {
-                lowMsg.textContent = 'ONLY ' + selectedStock + ' LEFT IN THIS SIZE';
-                lowMsg.classList.remove('hidden');
-            } else {
-                lowMsg.classList.add('hidden');
-            }
-
-            // Update size label styles
-            document.querySelectorAll('.size-label').forEach(function(lbl) {
-                lbl.style.borderColor = '';
-                lbl.style.color = '';
-            });
-            var label = radio.nextElementSibling;
-            if (label) {
-                label.style.borderColor = '#e50914';
-                label.style.color = '#e50914';
-            }
+    /**
+     * Called by onclick on each in-stock size button.
+     * Sets the selected variant and highlights the chosen button.
+     */
+    function selectSize(btn) {
+        // Clear selection on all size buttons
+        document.querySelectorAll('.size-btn').forEach(function(b) {
+            b.classList.remove('selected');
         });
-    });
+        // Mark this one selected
+        btn.classList.add('selected');
+
+        selectedVariantId = btn.dataset.variantId;
+        selectedStock = parseInt(btn.dataset.stock, 10);
+        quantity = 1;
+        updateQtyDisplay();
+
+        document.getElementById('selected-size-label').textContent = '— ' + btn.dataset.size;
+
+        var lowMsg = document.getElementById('low-stock-msg');
+        if (selectedStock < 10) {
+            lowMsg.textContent = 'ONLY ' + selectedStock + ' LEFT IN THIS SIZE';
+            lowMsg.classList.remove('hidden');
+        } else {
+            lowMsg.classList.add('hidden');
+        }
+
+        // Hide size-not-selected error if visible
+        var errMsg = document.getElementById('size-error-msg');
+        if (errMsg) errMsg.classList.add('hidden');
+    }
 
     function adjustQty(delta) {
         var newQty = quantity + delta;
         if (newQty < 1) return;
-        if (selectedVariantId && newQty > selectedStock) return;
-        if (!selectedVariantId && newQty > 1) return; // no size selected yet — cap at 1
+        if (selectedVariantId && newQty > selectedStock) return;  // cap at stock
+        if (!selectedVariantId && newQty > 1) return;             // must pick a size first
         quantity = newQty;
         updateQtyDisplay();
     }
@@ -281,23 +278,30 @@
 
     function handleAddToCart() {
         if (!selectedVariantId) {
-            alert('Please select a size.');
+            var errMsg = document.getElementById('size-error-msg');
+            if (errMsg) {
+                errMsg.classList.remove('hidden');
+                setTimeout(function() { errMsg.classList.add('hidden'); }, 3000);
+            }
             return;
         }
+
         var productId = document.getElementById('add-to-cart-btn').dataset.productId;
-        // addToCart is exposed globally by cart.js ES module
-        if (typeof addToCart === 'function') {
-            addToCart(parseInt(productId, 10), parseInt(selectedVariantId, 10), quantity);
+
+        // window.addToCart is exposed by cart.js (ES module)
+        if (typeof window.addToCart === 'function') {
+            window.addToCart(
+                parseInt(productId, 10),
+                parseInt(selectedVariantId, 10),
+                quantity
+            );
         } else {
-            // Fallback: direct fetch
-            var csrfToken = document.querySelector('meta[name="_csrf"]').content;
-            var csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+            // Fallback: direct fetch (e.g. if cart.js hasn't loaded yet)
+            var csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            var csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
             fetch('/api/cart/add', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    [csrfHeader]: csrfToken
-                },
+                headers: { 'Content-Type': 'application/json', [csrfHeader]: csrfToken },
                 body: JSON.stringify({
                     productId: parseInt(productId, 10),
                     variantId: parseInt(selectedVariantId, 10),
@@ -306,15 +310,14 @@
             })
             .then(function(r) { return r.json(); })
             .then(function(data) {
-                if (data.message) {
-                    // Update cart badge if present
-                    var badge = document.getElementById('cart-count');
-                    if (badge && data.itemCount) {
-                        badge.textContent = data.itemCount;
-                        badge.classList.remove('hidden');
-                    }
+                var badge = document.getElementById('cart-count');
+                if (badge && data.itemCount > 0) {
+                    badge.textContent = data.itemCount;
+                    badge.classList.remove('hidden');
                 }
-            });
+                if (data.message) alert(data.message);
+            })
+            .catch(function() { alert('Could not add item. Please try again.'); });
         }
     }
 </script>
