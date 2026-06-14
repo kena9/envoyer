@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Sign Up — Akuma Threads</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}"/>
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: navbar}"></div>
+
+<main class="auth-page">
+    <div class="auth-card">
+        <h2>Create Account</h2>
+        <p class="auth-sub">Join Akuma Threads and start shopping</p>
+
+        <form th:action="@{/register}" th:object="${registerRequest}"
+              method="post" class="auth-form">
+
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" th:field="*{name}"
+                       placeholder="Your name" autofocus/>
+                <span class="field-error" th:if="${#fields.hasErrors('name')}"
+                      th:errors="*{name}"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" th:field="*{email}"
+                       placeholder="you@example.com"/>
+                <span class="field-error" th:if="${#fields.hasErrors('email')}"
+                      th:errors="*{email}"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" th:field="*{password}"
+                       placeholder="At least 8 characters"/>
+                <span class="field-error" th:if="${#fields.hasErrors('password')}"
+                      th:errors="*{password}"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" th:field="*{confirmPassword}"
+                       placeholder="Repeat password"/>
+                <span class="field-error" th:if="${#fields.hasErrors('confirmPassword')}"
+                      th:errors="*{confirmPassword}"></span>
+            </div>
+
+            <button type="submit" class="btn-primary btn-full">Create Account</button>
+        </form>
+
+        <p class="auth-footer">
+            Already have an account? <a th:href="@{/login}">Log in</a>
+        </p>
+    </div>
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

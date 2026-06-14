@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Akuma Threads — Anime Artist Clothing</title>
+    <link rel="stylesheet" th:href="@{/css/main.css}"/>
+</head>
+<body>
+
+<div th:replace="~{fragments/layout :: navbar}"></div>
+
+<main>
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Original Anime Art.<br/>Wearable Culture.</h1>
+            <p>Hand-crafted designs from an independent anime artist — hoodies, shirts, and accessories that tell a story.</p>
+            <a th:href="@{/shop}" class="btn-primary">Shop the Collection</a>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features">
+        <div class="feature-card">
+            <span class="feature-icon">🎨</span>
+            <h3>Original Art</h3>
+            <p>Every design is hand-drawn by our in-house anime artist.</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon">👕</span>
+            <h3>Premium Quality</h3>
+            <p>Heavyweight cotton hoodies and shirts built to last.</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon">📦</span>
+            <h3>Fast Shipping</h3>
+            <p>Orders ship within 2 business days, tracked every step.</p>
+        </div>
+    </section>
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+
+<!--
+  ============================================================
+  PRODUCT CARD FRAGMENT
+  Usage:
+    <div th:replace="~{fragments/product-card :: productCard(${product})}"></div>
+
+  Expects a 'product' object with fields:
+    id, name, description, price (BigDecimal), imageUrl,
+    totalStock (int), defaultVariantId (Long), createdDate (LocalDateTime)
+  ============================================================
+-->
+<div th:fragment="productCard(product)"
+     class="group relative flex flex-col bg-gray-900 border border-gray-800
+            rounded-2xl shadow-md overflow-hidden
+            hover:border-brand hover:shadow-brand/20 hover:shadow-lg
+            transition-all duration-300"
+     th:attr="data-product-id=${product.id}">
+
+    <!-- ── Badges (absolutely positioned over the image) ──────────────────── -->
+    <div class="absolute top-3 left-3 z-10 flex flex-col gap-1 pointer-events-none">
+
+        <!-- Low Stock: > 0 but < 10 units across all variants -->
+        <span th:if="${product.totalStock < 10 and product.totalStock > 0}"
+              class="bg-amber-500 text-white text-xs font-bold
+                     px-2 py-0.5 rounded-full shadow-sm">
+            Low Stock
+        </span>
+
+        <!-- Out of Stock -->
+        <span th:if="${product.totalStock == 0}"
+              class="bg-red-600 text-white text-xs font-bold
+                     px-2 py-0.5 rounded-full shadow-sm">
+            Out of Stock
+        </span>
+
+        <!--
+          New badge: product was created within the last 14 days.
+          #temporals.createNow() returns a java.time.LocalDateTime via Thymeleaf's
+          Spring dialect — available when thymeleaf-extras-java8time is on the classpath
+          (included transitively by spring-boot-starter-thymeleaf).
+        -->
+        <span th:if="${product.createdDate != null
+                       and product.createdDate.isAfter(#temporals.createNow().minusDays(14))}"
+              class="bg-green-600 text-white text-xs font-bold
+                     px-2 py-0.5 rounded-full shadow-sm">
+            New
+        </span>
+    </div>
+
+    <!-- ── Product image with zoom-on-hover ───────────────────────────────── -->
+    <a th:href="@{/product/{id}(id=${product.id})}"
+       class="block overflow-hidden h-56 bg-gray-800"
+       th:attr="aria-label=${'View details for ' + product.name}">
+        <img th:src="${product.imageUrl != null ? product.imageUrl : '/images/placeholder.png'}"
+             th:alt="${product.name}"
+             loading="lazy"
+             class="w-full h-full object-cover
+                    group-hover:scale-105 transition-transform duration-300"/>
+    </a>
+
+    <!-- ── Card body ──────────────────────────────────────────────────────── -->
+    <div class="flex flex-col flex-1 p-4 gap-2">
+
+        <!-- Product name -->
+        <a th:href="@{/product/{id}(id=${product.id})}"
+           class="font-bold text-white text-base leading-tight
+                  hover:text-brand transition-colors duration-200 line-clamp-2">
+            <h3 th:text="${product.name}">Product Name</h3>
+        </a>
+
+        <!-- Description excerpt -->
+        <p th:text="${product.description}"
+           class="text-gray-400 text-xs leading-relaxed line-clamp-2 flex-1">
+            Product description goes here.
+        </p>
+
+        <!-- Price + Add to Cart row -->
+        <div class="flex items-center justify-between mt-auto pt-2">
+
+            <!-- Price — always BigDecimal, formatted to 2 decimal places -->
+            <span class="text-brand font-extrabold text-lg"
+                  th:text="'$' + ${#numbers.formatDecimal(product.price, 1, 'POINT', 2, 'COMMA')}">
+                $0.00
+            </span>
+
+            <!--
+              Add to Cart button — enabled only when stock is available.
+              Calls addToCart(productId, defaultVariantId, quantity) from cart.js
+              (exposed on window). The defaultVariantId is the first in-stock variant.
+            -->
+            <button th:if="${product.totalStock > 0}"
+                    type="button"
+                    th:attr="onclick='addToCart(' + ${product.id} + ',' + ${product.defaultVariantId} + ',1)',
+                             aria-label=${'Add ' + product.name + ' to cart'}"
+                    class="bg-brand hover:bg-brand-dark text-white
+                           text-sm font-semibold px-4 py-2 rounded-lg
+                           transition-colors duration-200
+                           focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2
+                           focus:ring-offset-gray-900">
+                Add to Cart
+            </button>
+
+            <!-- Disabled state when out of stock -->
+            <button th:if="${product.totalStock == 0}"
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    aria-label="Out of stock — cannot add to cart"
+                    class="bg-gray-700 text-gray-500 text-sm font-semibold
+                           px-4 py-2 rounded-lg cursor-not-allowed">
+                Out of Stock
+            </button>
+        </div>
+    </div>
+</div>
+
+</html>

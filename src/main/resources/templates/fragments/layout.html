@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<!--
+  ============================================================
+  HEAD FRAGMENT
+  Usage: <div th:replace="~{fragments/layout :: head('Page Title')}"></div>
+  ============================================================
+-->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'; form-action 'self'"/>
+
+    <title th:text="${title} + ' — Akuma Threads'">Akuma Threads</title>
+
+    <!--
+      Tailwind Play CDN — development convenience only.
+      Replace with a compiled stylesheet (npx tailwindcss -o static/css/tailwind.min.css)
+      before production deployment to avoid the runtime JIT overhead and to harden the CSP
+      by removing 'unsafe-inline' from style-src.
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand:      '#4F46E5',
+                        'brand-dark': '#3730A3'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!--
+      Theme initialisation — runs synchronously before first paint to prevent
+      a flash of the wrong theme when the user has a saved preference.
+      Inline scripts conflict with a strict CSP script-src. In production,
+      move this to a JS file and serve with a nonce via a ContentSecurityPolicyNonceRequestAttributeAssigningHandler.
+    -->
+    <script>
+        (function () {
+            var saved = localStorage.getItem('akuma-theme');
+            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved === 'dark' || (!saved && prefersDark)) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
+
+    <!-- CSRF token in meta so JS modules can read it without embedding in every form -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+
+    <!-- Shared stylesheet for non-Tailwind overrides -->
+    <link rel="stylesheet" th:href="@{/css/main.css}"/>
+</head>
+
+<!--
+  ============================================================
+  NAVBAR FRAGMENT
+  Usage: <div th:replace="~{fragments/layout :: navbar}"></div>
+  ============================================================
+-->
+<nav th:fragment="navbar"
+     class="sticky top-0 z-50 bg-gray-950 border-b border-gray-800 dark:bg-gray-950">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+
+        <!-- Brand -->
+        <a th:href="@{/}"
+           class="text-xl font-extrabold text-white tracking-tight hover:text-brand transition-colors duration-200">
+            ⚔️ Akuma Threads
+        </a>
+
+        <!-- Nav links -->
+        <ul class="hidden md:flex items-center gap-6 list-none m-0 p-0">
+            <li>
+                <a th:href="@{/shop}"
+                   class="text-sm font-medium text-gray-400 hover:text-white transition-colors duration-200">
+                    Shop
+                </a>
+            </li>
+            <li sec:authorize="isAuthenticated()">
+                <a th:href="@{/cart}"
+                   class="relative text-sm font-medium text-gray-400 hover:text-white transition-colors duration-200">
+                    Cart
+                    <span id="cart-count"
+                          class="hidden absolute -top-2 -right-4 bg-brand text-white text-xs font-bold rounded-full w-5 h-5 inline-flex items-center justify-center">
+                        0
+                    </span>
+                </a>
+            </li>
+            <li sec:authorize="isAuthenticated()">
+                <a th:href="@{/orders}"
+                   class="text-sm font-medium text-gray-400 hover:text-white transition-colors duration-200">
+                    Orders
+                </a>
+            </li>
+            <li sec:authorize="hasRole('ADMIN')">
+                <a th:href="@{/admin/products}"
+                   class="text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors duration-200">
+                    Admin
+                </a>
+            </li>
+        </ul>
+
+        <!-- Right controls -->
+        <div class="flex items-center gap-3">
+
+            <!-- Dark-mode toggle -->
+            <button id="theme-toggle"
+                    onclick="toggleDark()"
+                    aria-label="Toggle dark mode"
+                    class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors duration-200">
+                <!-- Sun icon — shown in dark mode -->
+                <svg class="hidden dark:block w-5 h-5" xmlns="http://www.w3.org/2000/svg"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.36-.71.71M5.64 18.36l-.71.71M18.36 18.36l-.71-.71M5.64 5.64l-.71-.71M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7z"/>
+                </svg>
+                <!-- Moon icon — shown in light mode -->
+                <svg class="block dark:hidden w-5 h-5" xmlns="http://www.w3.org/2000/svg"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 1 0 9.79 9.79z"/>
+                </svg>
+            </button>
+
+            <sec:authorize access="isAuthenticated()">
+                <form th:action="@{/logout}" method="post" class="m-0">
+                    <button type="submit"
+                            class="text-sm font-medium text-gray-400 hover:text-white transition-colors duration-200">
+                        Logout
+                    </button>
+                </form>
+            </sec:authorize>
+
+            <sec:authorize access="!isAuthenticated()">
+                <a th:href="@{/login}"
+                   class="text-sm font-medium text-gray-400 hover:text-white transition-colors duration-200">
+                    Login
+                </a>
+                <a th:href="@{/register}"
+                   class="text-sm font-bold bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded-lg transition-colors duration-200">
+                    Sign Up
+                </a>
+            </sec:authorize>
+        </div>
+    </div>
+</nav>
+
+<!--
+  ============================================================
+  FOOTER FRAGMENT
+  Usage: <div th:replace="~{fragments/layout :: footer}"></div>
+  ============================================================
+-->
+<footer th:fragment="footer"
+        class="border-t border-gray-800 bg-gray-950 text-gray-500 text-sm text-center py-6 mt-auto">
+    <p>© 2026 Akuma Threads — Original Anime Artist Clothing</p>
+</footer>
+
+<!--
+  ============================================================
+  THEME TOGGLE SCRIPT (placed at bottom of layout to avoid repetition)
+  Include once per page: <div th:replace="~{fragments/layout :: themeScript}"></div>
+  ============================================================
+-->
+<script th:fragment="themeScript">
+    function toggleDark() {
+        var html = document.documentElement;
+        if (html.classList.contains('dark')) {
+            html.classList.remove('dark');
+            localStorage.setItem('akuma-theme', 'light');
+        } else {
+            html.classList.add('dark');
+            localStorage.setItem('akuma-theme', 'dark');
+        }
+    }
+</script>
+
+</html>
