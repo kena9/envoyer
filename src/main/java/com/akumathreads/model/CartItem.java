@@ -29,4 +29,11 @@ public class CartItem {
 
     @Column(updatable = false)
     private LocalDateTime addedAt = LocalDateTime.now();
+
+    /**
+     * Set when an abandoned-cart recovery email has been sent for this cart.
+     * Prevents duplicate emails on subsequent scheduler runs.
+     */
+    @Column(name = "recovery_email_sent_at")
+    private LocalDateTime recoveryEmailSentAt;
 }

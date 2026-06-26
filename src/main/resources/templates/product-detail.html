@@ -1,310 +1,361 @@
 <!DOCTYPE html>
 <html lang="en"
       xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      class="dark">
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
-<head th:replace="~{fragments/layout :: head(${product.name})}"></head>
+<head th:replace="~{fragments/layout :: head(${product.name})}">
+    <meta th:if="${ogImage != null}"       property="og:image"       th:content="${ogImage}"/>
+    <meta th:if="${ogDescription != null}" property="og:description" th:content="${ogDescription}"/>
+</head>
 
-<body class="bg-[#0a0a0a] text-white min-h-screen flex flex-col">
-
+<body class="min-h-screen flex flex-col" style="background:var(--ot-bg);color:var(--ot-text);">
 <div th:replace="~{fragments/layout :: navbar}"></div>
 <script type="module" th:src="@{/js/cart.js}"></script>
-
 <style>
-    .font-display { font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; }
-    .size-btn.selected {
-        border-color: #e50914 !important;
-        color: #e50914 !important;
-        box-shadow: 0 0 0 1px #e50914, 0 0 14px rgba(229,9,20,0.20);
-    }
+    .font-display    { font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; }
+    .font-mono-sharp { font-family: 'Courier New', 'Lucida Console', monospace; }
+    .size-btn { transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s cubic-bezier(0.16,1,0.3,1); color: var(--ot-text-muted); border-color: var(--ot-border); }
+    .size-btn.selected { border-color: #e50914 !important; color: #e50914 !important; box-shadow: 0 0 0 1px #e50914; }
     .size-btn:hover:not(.selected) { border-color: #e50914; color: #e50914; }
-    .btn-primary-crimson:hover {
-        box-shadow: 0 0 16px rgba(229,9,20,0.30);
-    }
+    .size-btn:active { transform: scale(0.95); }
+    #main-product-img { transition: transform 0.6s cubic-bezier(0.16,1,0.3,1); }
+    .img-container:hover #main-product-img { transform: scale(1.04); }
+    #lightbox { position: fixed; inset: 0; z-index: 10000; background: rgba(0,0,0,0.93); display: none; align-items: center; justify-content: center; cursor: zoom-out; animation: lb-in 0.25s ease; }
+    @keyframes lb-in { from { opacity: 0; } to { opacity: 1; } }
+    #lightbox.open { display: flex; }
+    #lightbox img { max-width: 90vw; max-height: 88vh; object-fit: contain; }
+    #lightbox-close { position: absolute; top: 20px; right: 24px; background: none; border: none; color: #555; font-size: 28px; cursor: pointer; line-height: 1; transition: color 0.2s; }
+    #lightbox-close:hover { color: #fff; }
+    #size-guide-modal { position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.88); display: none; align-items: center; justify-content: center; padding: 24px; }
+    #size-guide-modal.open { display: flex; }
+    .size-guide-inner { background: var(--ot-surface); border: 1px solid var(--ot-border-2); max-width: 640px; width: 100%; max-height: 80vh; overflow-y: auto; padding: 40px; position: relative; animation: lb-in 0.25s ease; }
+    .size-guide-inner table { width: 100%; border-collapse: collapse; }
+    .size-guide-inner th, .size-guide-inner td { font-family: 'Courier New', monospace; font-size: 11px; letter-spacing: 0.1em; border-bottom: 1px solid var(--ot-border); padding: 10px 12px; text-align: left; }
+    .size-guide-inner th { color: var(--ot-text-muted); text-transform: uppercase; }
+    .size-guide-inner td { color: var(--ot-text); }
+    .related-card { transition: transform 0.4s cubic-bezier(0.16,1,0.3,1); }
+    .related-card:hover { transform: translateY(-4px); }
+    .related-img { transition: transform 0.5s ease-out; }
+    .related-card:hover .related-img { transform: scale(1.05); }
+    @keyframes cart-pulse { 0% { box-shadow: 0 0 0 0 rgba(229,9,20,0.5); } 70% { box-shadow: 0 0 0 12px rgba(229,9,20,0); } 100% { box-shadow: 0 0 0 0 rgba(229,9,20,0); } }
+    .cart-pulse { animation: cart-pulse 0.6s ease-out; }
 </style>
 
-<main class="flex-1 max-w-7xl mx-auto w-full px-6 sm:px-10 py-10">
+<main class="flex-1 w-full max-w-7xl mx-auto px-6 sm:px-10 py-10">
 
-    <!-- ── Breadcrumb ──────────────────────────────────────────────────────── -->
-    <nav class="flex items-center gap-2 font-mono text-[10px] tracking-[0.2em] uppercase text-[#444] mb-10">
-        <a th:href="@{/shop}" class="hover:text-white transition-colors duration-200">SHOP</a>
-        <span class="text-[#222]">/</span>
-        <a th:href="@{/shop(category=${product.category.name()})}"
-           class="hover:text-white transition-colors duration-200 capitalize"
-           th:text="${product.category.name().toLowerCase()}">category</a>
-        <span class="text-[#222]">/</span>
-        <span class="text-[#555]" th:text="${product.name}">Product Name</span>
-    </nav>
+  <!-- Breadcrumb -->
+  <nav class="flex items-center gap-2 font-mono-sharp text-[10px] tracking-[0.2em] uppercase mb-10" style="color:var(--ot-text-dim);" data-reveal="fade">
+    <a th:href="@{/shop}" class="hover:text-[#e50914] transition-colors">SHOP</a>
+    <span style="color:var(--ot-border-2);">/</span>
+    <a th:if="${product.category != null}" th:href="@{/shop(category=${product.category.name()})}" class="hover:text-[#e50914] transition-colors capitalize" th:text="${product.category.name().toLowerCase()}">category</a>
+    <span th:unless="${product.category != null}" class="capitalize" style="color:var(--ot-text-muted);">uncategorized</span>
+    <span style="color:var(--ot-border-2);">/</span>
+    <span style="color:var(--ot-text-muted);" th:text="${product.name}">Product Name</span>
+  </nav>
 
-    <!-- ── Main split layout ────────────────────────────────────────────────── -->
-    <div class="flex flex-col lg:flex-row gap-0 lg:gap-px bg-[#0a0a0a] lg:bg-[#1a1a1a]">
+  <!-- Main grid -->
+  <div class="grid lg:grid-cols-2 gap-px" style="background:var(--ot-border);">
 
-        <!-- ══ LEFT: Product Image ══════════════════════════════════════════ -->
-        <div class="lg:w-1/2 bg-[#0a0a0a]">
-            <div class="relative overflow-hidden bg-[#0d0d0d] aspect-square lg:aspect-auto lg:h-full"
-                 style="min-height: 400px;">
-
-                <!-- Corner marks -->
-                <div class="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-[#1a1a1a] z-10"></div>
-                <div class="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-[#1a1a1a] z-10"></div>
-                <div class="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-[#1a1a1a] z-10"></div>
-                <div class="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-[#1a1a1a] z-10"></div>
-
-                <img th:if="${product.imageUrl != null}"
-                     th:src="${product.imageUrl}"
-                     th:alt="${product.name}"
-                     class="w-full h-full object-cover"/>
-                <div th:unless="${product.imageUrl != null}"
-                     class="w-full h-full flex items-center justify-center"
-                     style="min-height: 500px;">
-                    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" class="opacity-10">
-                        <rect x="1" y="1" width="78" height="78" stroke="white" stroke-width="2"/>
-                        <line x1="1" y1="1" x2="79" y2="79" stroke="white" stroke-width="2"/>
-                        <line x1="79" y1="1" x2="1" y2="79" stroke="white" stroke-width="2"/>
-                    </svg>
-                </div>
-
-                <!-- Stock badge overlay -->
-                <div class="absolute top-6 left-6 z-10">
-                    <span th:if="${product.totalStock == 0}"
-                          class="font-mono text-[9px] tracking-[0.2em] uppercase font-bold
-                                 bg-[#0a0a0a] border border-[#e50914] text-[#e50914] px-3 py-1.5">
-                        SOLD OUT
-                    </span>
-                    <span th:if="${product.totalStock > 0 and product.totalStock < 10}"
-                          class="font-mono text-[9px] tracking-[0.2em] uppercase font-bold
-                                 bg-[#e50914] text-white px-3 py-1.5">
-                        ONLY <span th:text="${product.totalStock}">0</span> LEFT
-                    </span>
-                    <span th:if="${#temporals.createNow().minusDays(14).isBefore(product.createdDate)}"
-                          class="font-mono text-[9px] tracking-[0.2em] uppercase font-bold
-                                 bg-white text-[#0a0a0a] px-3 py-1.5 ml-2">
-                        NEW DROP
-                    </span>
-                </div>
-            </div>
+    <!-- LEFT: Image -->
+    <div style="background:var(--ot-bg);" data-reveal="fade">
+      <div class="img-container relative overflow-hidden aspect-square" style="background:var(--ot-surface);cursor:zoom-in;" onclick="openLightbox()">
+        <div class="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-[#1a1a1a] z-10 pointer-events-none"></div>
+        <div class="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-[#1a1a1a] z-10 pointer-events-none"></div>
+        <div class="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-[#1a1a1a] z-10 pointer-events-none"></div>
+        <div class="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-[#1a1a1a] z-10 pointer-events-none"></div>
+        <img th:if="${product.imageUrl != null}" id="main-product-img" th:src="${product.imageUrl}" th:alt="${product.name}" class="w-full h-full object-cover" loading="eager"/>
+        <div th:unless="${product.imageUrl != null}" class="w-full h-full flex items-center justify-center min-h-[400px]">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none" class="opacity-10"><rect x="1" y="1" width="78" height="78" stroke="white" stroke-width="2"/><line x1="1" y1="1" x2="79" y2="79" stroke="white" stroke-width="2"/><line x1="79" y1="1" x2="1" y2="79" stroke="white" stroke-width="2"/></svg>
         </div>
-
-        <!-- ══ RIGHT: Product Details ════════════════════════════════════════ -->
-        <div class="lg:w-1/2 bg-[#0a0a0a] lg:border-l lg:border-[#1a1a1a] p-8 lg:p-12 flex flex-col">
-
-            <!-- Category pill -->
-            <span class="font-mono text-[9px] tracking-[0.3em] uppercase text-[#444] border border-[#222] px-3 py-1.5 self-start mb-6 capitalize"
-                  th:text="${product.category.name().toLowerCase()}">category</span>
-
-            <!-- Product name -->
-            <h1 class="font-display text-white uppercase leading-[0.9] mb-6"
-                style="font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -0.01em;"
-                th:text="${product.name}">
-                PRODUCT NAME
-            </h1>
-
-            <!-- Price -->
-            <p class="font-mono text-[2rem] font-bold mb-8"
-               style="color: #e50914;"
-               th:text="'$' + ${#numbers.formatDecimal(product.price, 1, 2)}">
-                $0.00
-            </p>
-
-            <!-- ── Size selector ──────────────────────────────────────────── -->
-            <div class="mb-8">
-                <p class="font-mono text-[10px] tracking-[0.25em] uppercase text-[#444] mb-4">
-                    SELECT SIZE
-                    <span id="selected-size-label" class="text-[#e50914] ml-2"></span>
-                </p>
-                <div class="flex flex-wrap gap-2">
-                    <th:block th:each="variant : ${product.variants}">
-                        <!-- In-stock: plain button — no radio quirks, works on all browsers -->
-                        <button th:if="${variant.stockQty > 0}"
-                                type="button"
-                                class="size-btn font-mono text-[11px] tracking-[0.15em] uppercase
-                                       border border-[#222] px-4 py-2.5
-                                       hover:border-[#e50914] hover:text-[#e50914] transition-colors duration-200"
-                                th:data-variant-id="${variant.id}"
-                                th:data-size="${variant.size.name()}"
-                                th:data-stock="${variant.stockQty}"
-                                onclick="selectSize(this)"
-                                th:text="${variant.size.name()}">M</button>
-                        <!-- Out-of-stock: non-interactive span -->
-                        <span th:unless="${variant.stockQty > 0}"
-                              class="font-mono text-[11px] tracking-[0.15em] uppercase
-                                     border border-[#111] px-4 py-2.5 opacity-30
-                                     cursor-not-allowed line-through text-[#555]"
-                              th:text="${variant.size.name()}">M</span>
-                    </th:block>
-                </div>
-                <!-- Per-size low stock / size-not-selected messages -->
-                <p id="low-stock-msg" class="font-mono text-[10px] text-[#e50914] tracking-[0.15em] uppercase mt-3 hidden"></p>
-                <p id="size-error-msg" class="font-mono text-[10px] text-[#e50914] tracking-[0.15em] uppercase mt-3 hidden">
-                    ← SELECT A SIZE TO CONTINUE
-                </p>
-            </div>
-
-            <!-- ── Quantity selector ──────────────────────────────────────── -->
-            <div class="mb-8">
-                <p class="font-mono text-[10px] tracking-[0.25em] uppercase text-[#444] mb-4">QUANTITY</p>
-                <div class="flex items-center gap-0 border border-[#222] self-start w-fit">
-                    <button type="button"
-                            id="qty-minus"
-                            onclick="adjustQty(-1)"
-                            class="font-mono text-white w-10 h-10 flex items-center justify-center
-                                   border-r border-[#222] hover:bg-[#e50914] hover:text-white
-                                   transition-colors duration-200 text-lg font-bold">
-                        −
-                    </button>
-                    <span id="qty-display"
-                          class="font-mono text-white w-12 h-10 flex items-center justify-center text-sm font-bold">
-                        1
-                    </span>
-                    <button type="button"
-                            id="qty-plus"
-                            onclick="adjustQty(1)"
-                            class="font-mono text-white w-10 h-10 flex items-center justify-center
-                                   border-l border-[#222] hover:bg-[#e50914] hover:text-white
-                                   transition-colors duration-200 text-lg font-bold">
-                        +
-                    </button>
-                </div>
-            </div>
-
-            <!-- ── CTA buttons ────────────────────────────────────────────── -->
-            <div class="flex flex-col gap-3 mb-10">
-
-                <!-- ADD TO CART — shown when stock > 0 -->
-                <button th:if="${product.totalStock > 0}"
-                        id="add-to-cart-btn"
-                        onclick="handleAddToCart()"
-                        th:data-product-id="${product.id}"
-                        class="btn-primary-crimson font-mono text-[11px] tracking-[0.25em] uppercase font-bold
-                               bg-[#e50914] text-white px-8 py-4 w-full
-                               hover:bg-[#b8070f] transition-all duration-200
-                               disabled:opacity-40 disabled:cursor-not-allowed">
-                    ADD TO CART
-                </button>
-
-                <!-- SOLD OUT — shown when all stock = 0 -->
-                <button th:if="${product.totalStock == 0}"
-                        disabled
-                        class="font-mono text-[11px] tracking-[0.25em] uppercase font-bold
-                               border border-[#333] text-[#333] px-8 py-4 w-full cursor-not-allowed">
-                    SOLD OUT
-                </button>
-
-                <!-- Back to shop -->
-                <a th:href="@{/shop}"
-                   class="font-mono text-[10px] tracking-[0.2em] uppercase text-[#444]
-                          hover:text-white transition-colors duration-200 text-center py-2">
-                    ← BACK TO SHOP
-                </a>
-            </div>
-
-            <!-- ── Divider ────────────────────────────────────────────────── -->
-            <div class="border-t border-[#1a1a1a] pt-8 mt-auto">
-
-                <!-- Description -->
-                <div th:if="${product.description != null and !product.description.isBlank()}"
-                     class="mb-8">
-                    <p class="font-mono text-[10px] tracking-[0.25em] uppercase text-[#444] mb-3">DESCRIPTION</p>
-                    <p class="font-mono text-[12px] text-[#888] leading-relaxed tracking-wide"
-                       th:text="${product.description}">Description</p>
-                </div>
-
-                <!-- Care / shipping notes -->
-                <div class="space-y-2">
-                    <div class="flex items-start gap-3">
-                        <span class="font-mono text-[10px] text-[#e50914] tracking-[0.2em] uppercase mt-0.5">→</span>
-                        <p class="font-mono text-[10px] text-[#444] tracking-[0.1em]">Print-on-demand — made fresh per order</p>
-                    </div>
-                    <div class="flex items-start gap-3">
-                        <span class="font-mono text-[10px] text-[#e50914] tracking-[0.2em] uppercase mt-0.5">→</span>
-                        <p class="font-mono text-[10px] text-[#444] tracking-[0.1em]">Ships in 5–10 business days</p>
-                    </div>
-                    <div class="flex items-start gap-3">
-                        <span class="font-mono text-[10px] text-[#e50914] tracking-[0.2em] uppercase mt-0.5">→</span>
-                        <p class="font-mono text-[10px] text-[#444] tracking-[0.1em]">No restocks — limited run</p>
-                    </div>
-                </div>
-            </div>
+        <div th:if="${product.imageUrl != null}" class="absolute bottom-5 right-5 z-10 pointer-events-none font-mono-sharp text-[8px] tracking-[0.2em] uppercase" style="color:var(--ot-text-dim);">Click to zoom</div>
+        <div class="absolute top-5 left-5 z-10 flex gap-2 pointer-events-none">
+          <span th:if="${product.totalStock == 0}" class="font-mono-sharp text-[9px] tracking-[0.2em] uppercase font-bold border border-[#e50914] text-[#e50914] px-3 py-1.5" style="background:var(--ot-surface);">SOLD OUT</span>
+          <span th:if="${product.totalStock > 0 and product.totalStock lt 10}" class="font-mono-sharp text-[9px] tracking-[0.2em] uppercase font-bold bg-[#e50914] text-white px-3 py-1.5">ONLY <span th:text="${product.totalStock}">0</span> LEFT</span>
+          <span th:if="${editionSize != null}" class="font-mono-sharp text-[9px] tracking-[0.2em] uppercase font-bold px-3 py-1.5" style="background:var(--ot-surface);border:1px solid var(--ot-border-2);color:var(--ot-text-muted);">LTD ED.</span>
+          <span th:if="${isNewDrop}" class="font-mono-sharp text-[9px] tracking-[0.2em] uppercase font-bold bg-white text-[#0a0a0a] px-3 py-1.5">NEW DROP</span>
         </div>
+      </div>
+      <div th:if="${product.imageUrl != null}" class="flex gap-px border-t" style="background:var(--ot-border);border-color:var(--ot-border);">
+        <button onclick="switchThumb(this)" class="thumb-btn w-20 h-20 overflow-hidden flex-shrink-0 border-2 border-[#e50914] transition-all duration-200" style="background:var(--ot-surface);">
+          <img th:src="${product.imageUrl}" th:alt="${product.name}" class="w-full h-full object-cover opacity-80"/>
+        </button>
+      </div>
     </div>
+
+    <!-- RIGHT: Details -->
+    <div class="border-l p-8 lg:p-12 flex flex-col" style="background:var(--ot-bg);border-color:var(--ot-border);" data-reveal="slide-left">
+
+      <span class="font-mono-sharp text-[9px] tracking-[0.3em] uppercase border px-3 py-1.5 self-start mb-6 capitalize" style="color:var(--ot-text-dim);border-color:var(--ot-border);" th:text="${product.category != null ? product.category.name().toLowerCase() : 'uncategorized'}">category</span>
+
+      <h1 class="font-display uppercase leading-[0.9] mb-4" style="font-size:clamp(2rem,4.5vw,3.2rem);letter-spacing:-0.01em;color:var(--ot-text);" th:text="${product.name}">PRODUCT NAME</h1>
+
+      <p class="font-mono-sharp text-[2rem] font-bold mb-6" style="color:#e50914;" th:text="${product.price != null ? '$' + #numbers.formatDecimal(product.price,1,2) : '$—'}">$0.00</p>
+
+      <!-- Edition badge -->
+      <div th:if="${editionSize != null}" class="flex flex-wrap items-center gap-3 mb-6">
+        <span class="font-mono text-[9px] tracking-[0.3em] uppercase px-3 py-1.5 border border-[#e50914] text-[#e50914]">LIMITED EDITION</span>
+        <span class="font-mono-sharp text-[10px]" style="color:var(--ot-text-muted);"><span th:text="${nextEditionNumber}">1</span>/<span th:text="${editionSize}">100</span> pieces</span>
+        <span th:if="${editionSize != null and soldCount != null and editionSize - soldCount le 10 and editionSize - soldCount > 0}" class="font-mono text-[9px] tracking-[0.2em] uppercase text-[#e50914] animate-pulse">ALMOST GONE</span>
+      </div>
+
+      <!-- Drop countdown -->
+      <div th:if="${dropIsFuture}" id="pd-countdown-wrap" class="mb-8 border p-5" style="background:rgba(0,0,0,0.3);border-color:var(--ot-border);" th:data-drop-ms="${dropDateMs}">
+        <p class="font-mono text-[9px] tracking-[0.3em] uppercase text-[#e50914] mb-4">DROPPING IN</p>
+        <div class="flex items-start gap-3">
+          <div class="text-center min-w-[40px]"><p id="pd-days" class="font-display text-3xl font-bold" style="color:var(--ot-text);">--</p><p class="font-mono text-[8px] tracking-[0.2em] uppercase mt-1" style="color:var(--ot-text-dim);">Days</p></div>
+          <p class="font-display text-2xl font-bold mt-1" style="color:var(--ot-text-muted);">:</p>
+          <div class="text-center min-w-[40px]"><p id="pd-hours" class="font-display text-3xl font-bold" style="color:var(--ot-text);">--</p><p class="font-mono text-[8px] tracking-[0.2em] uppercase mt-1" style="color:var(--ot-text-dim);">Hrs</p></div>
+          <p class="font-display text-2xl font-bold mt-1" style="color:var(--ot-text-muted);">:</p>
+          <div class="text-center min-w-[40px]"><p id="pd-mins" class="font-display text-3xl font-bold" style="color:var(--ot-text);">--</p><p class="font-mono text-[8px] tracking-[0.2em] uppercase mt-1" style="color:var(--ot-text-dim);">Min</p></div>
+          <p class="font-display text-2xl font-bold mt-1" style="color:var(--ot-text-muted);">:</p>
+          <div class="text-center min-w-[40px]"><p id="pd-secs" class="font-display text-3xl font-bold text-[#e50914]">--</p><p class="font-mono text-[8px] tracking-[0.2em] uppercase mt-1" style="color:var(--ot-text-dim);">Sec</p></div>
+        </div>
+      </div>
+
+      <!-- Size selector -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <p class="font-mono-sharp text-[10px] tracking-[0.25em] uppercase" style="color:var(--ot-text-dim);">SELECT SIZE <span id="selected-size-label" class="text-[#e50914] ml-2"></span></p>
+          <button onclick="openSizeGuide()" class="font-mono-sharp text-[9px] tracking-[0.2em] uppercase hover:text-[#e50914] transition-colors duration-200 underline underline-offset-2" style="color:var(--ot-text-dim);">Size Guide</button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <th:block th:each="variant : ${product.variants}">
+            <button th:if="${variant.stockQty > 0}" type="button" class="size-btn font-mono-sharp text-[11px] tracking-[0.15em] uppercase border px-4 py-2.5" th:data-variant-id="${variant.id}" th:data-size="${variant.size.name()}" th:data-stock="${variant.stockQty}" onclick="selectSize(this)" th:text="${variant.size.name()}">M</button>
+            <span th:unless="${variant.stockQty > 0}" class="font-mono-sharp text-[11px] tracking-[0.15em] uppercase border px-4 py-2.5 opacity-25 cursor-not-allowed line-through" style="border-color:var(--ot-border);color:var(--ot-text-dim);" th:text="${variant.size.name()}">M</span>
+          </th:block>
+        </div>
+        <p id="low-stock-msg" class="font-mono-sharp text-[10px] text-[#e50914] tracking-[0.15em] uppercase mt-3 hidden"></p>
+        <p id="size-error-msg" class="font-mono-sharp text-[10px] text-[#e50914] tracking-[0.15em] uppercase mt-3 hidden">← SELECT A SIZE TO CONTINUE</p>
+      </div>
+
+      <!-- Quantity -->
+      <div class="mb-8">
+        <p class="font-mono-sharp text-[10px] tracking-[0.25em] uppercase mb-4" style="color:var(--ot-text-dim);">QUANTITY</p>
+        <div class="flex items-center gap-0 border self-start w-fit" style="border-color:var(--ot-border);">
+          <button type="button" onclick="adjustQty(-1)" class="font-mono-sharp w-10 h-10 flex items-center justify-center border-r hover:bg-[#e50914] hover:text-white transition-colors duration-200 text-lg font-bold" style="color:var(--ot-text);border-color:var(--ot-border);">−</button>
+          <span id="qty-display" class="font-mono-sharp w-12 h-10 flex items-center justify-center text-sm font-bold" style="color:var(--ot-text);">1</span>
+          <button type="button" onclick="adjustQty(1)" class="font-mono-sharp w-10 h-10 flex items-center justify-center border-l hover:bg-[#e50914] hover:text-white transition-colors duration-200 text-lg font-bold" style="color:var(--ot-text);border-color:var(--ot-border);">+</button>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="flex flex-col gap-3 mb-10">
+        <button th:if="${product.totalStock > 0 and !dropIsFuture}" id="add-to-cart-btn" onclick="handleAddToCart()" th:data-product-id="${product.id}" data-magnetic class="font-mono-sharp text-[11px] tracking-[0.25em] uppercase font-bold bg-[#e50914] text-white px-8 py-4 w-full hover:bg-[#b8070f] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed">ADD TO CART</button>
+        <div th:if="${dropIsFuture}" class="space-y-3">
+          <button disabled class="font-mono-sharp text-[11px] tracking-[0.25em] uppercase font-bold border px-8 py-4 w-full cursor-not-allowed" style="border-color:var(--ot-border);color:var(--ot-text-dim);">NOT AVAILABLE YET</button>
+          <div class="flex gap-2">
+            <input type="email" id="notify-email" placeholder="Get notified when this drops" class="flex-1 px-4 py-3 text-sm font-mono border" style="background:var(--ot-surface);border-color:var(--ot-border);color:var(--ot-text);">
+            <button onclick="subscribeNotify()" class="font-mono-sharp text-[10px] tracking-[0.2em] uppercase font-bold bg-[#e50914] text-white px-5 py-3 hover:bg-[#b8070f] transition-colors">NOTIFY ME</button>
+          </div>
+          <p id="notify-feedback" class="font-mono text-[10px] hidden" style="color:var(--ot-text-muted);"></p>
+        </div>
+        <button th:if="${product.totalStock == 0 and !dropIsFuture}" disabled class="font-mono-sharp text-[11px] tracking-[0.25em] uppercase font-bold border px-8 py-4 w-full cursor-not-allowed" style="border-color:var(--ot-border);color:var(--ot-text-dim);">SOLD OUT</button>
+        <a th:href="@{/shop}" class="font-mono-sharp text-[10px] tracking-[0.2em] uppercase hover:text-[#e50914] transition-colors duration-200 text-center py-2" style="color:var(--ot-text-dim);">← BACK TO SHOP</a>
+      </div>
+
+      <!-- Product info -->
+      <div class="border-t pt-8 mt-auto space-y-6" style="border-color:var(--ot-border);">
+        <div th:if="${product.description != null and !product.description.isBlank()}">
+          <p class="font-mono-sharp text-[10px] tracking-[0.25em] uppercase mb-3" style="color:var(--ot-text-dim);">DESCRIPTION</p>
+          <p class="font-mono-sharp text-[12px] leading-relaxed tracking-wide" style="color:var(--ot-text-muted);" th:text="${product.description}">Description</p>
+        </div>
+        <details class="group border-t pt-5" style="border-color:var(--ot-border);">
+          <summary class="font-mono-sharp text-[10px] tracking-[0.25em] uppercase flex justify-between cursor-pointer hover:text-[#e50914] transition-colors list-none" style="color:var(--ot-text-dim);">Shipping &amp; Fulfillment <span class="group-open:rotate-180 transition-transform duration-200">↓</span></summary>
+          <div class="mt-4 space-y-2">
+            <p class="font-mono-sharp text-[11px] leading-relaxed" style="color:var(--ot-text-muted);">→ Print-on-demand — made fresh per order</p>
+            <p class="font-mono-sharp text-[11px] leading-relaxed" style="color:var(--ot-text-muted);">→ Production: 3–5 business days</p>
+            <p class="font-mono-sharp text-[11px] leading-relaxed" style="color:var(--ot-text-muted);">→ Shipping: 2–7 business days (US/UK/EU)</p>
+            <p class="font-mono-sharp text-[11px] leading-relaxed" style="color:var(--ot-text-muted);">→ Tracked from print to your door</p>
+          </div>
+        </details>
+        <details class="group border-t pt-5" style="border-color:var(--ot-border);">
+          <summary class="font-mono-sharp text-[10px] tracking-[0.25em] uppercase flex justify-between cursor-pointer hover:text-[#e50914] transition-colors list-none" style="color:var(--ot-text-dim);">Care Instructions <span class="group-open:rotate-180 transition-transform duration-200">↓</span></summary>
+          <div class="mt-4 space-y-2">
+            <p class="font-mono-sharp text-[11px] leading-relaxed" style="color:var(--ot-text-muted);">→ Machine wash cold, inside out</p>
+            <p class="font-mono-sharp text-[11px] leading-relaxed" style="color:var(--ot-text-muted);">→ Do not bleach or tumble dry on high heat</p>
+            <p class="font-mono-sharp text-[11px] leading-relaxed" style="color:var(--ot-text-muted);">→ Lay flat to dry recommended</p>
+            <p class="font-mono-sharp text-[11px] leading-relaxed" style="color:var(--ot-text-muted);">→ Iron on reverse side only</p>
+          </div>
+        </details>
+        <details th:if="${editionSize != null}" class="group border-t pt-5" style="border-color:var(--ot-border);">
+          <summary class="font-mono-sharp text-[10px] tracking-[0.25em] uppercase flex justify-between cursor-pointer hover:text-[#e50914] transition-colors list-none" style="color:var(--ot-text-dim);">Edition Details <span class="group-open:rotate-180 transition-transform duration-200">↓</span></summary>
+          <div class="mt-4 space-y-2">
+            <p class="font-mono-sharp text-[11px] leading-relaxed" style="color:var(--ot-text-muted);">→ Limited to <span th:text="${editionSize}">100</span> pieces worldwide</p>
+            <p class="font-mono-sharp text-[11px] leading-relaxed" style="color:var(--ot-text-muted);">→ <span th:text="${soldCount}">0</span> claimed so far</p>
+            <p class="font-mono-sharp text-[11px] leading-relaxed" style="color:var(--ot-text-muted);">→ No restocks. Ever.</p>
+            <p class="font-mono-sharp text-[11px] leading-relaxed" style="color:var(--ot-text-muted);">→ Original ink artwork by Oliver Jin Wang</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- Related products -->
+  <section th:if="${!#lists.isEmpty(relatedProducts)}" class="mt-20 border-t pt-12" style="border-color:var(--ot-border);">
+    <p class="font-mono text-[10px] tracking-[0.3em] uppercase text-[#e50914] mb-2">MORE FROM THE COLLECTION</p>
+    <h2 class="font-display uppercase leading-none mb-10" style="font-size:clamp(1.6rem,3vw,2.4rem);color:var(--ot-text);">Related Pieces</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-px" style="background:var(--ot-border);">
+      <a th:each="rp : ${relatedProducts}" th:href="@{/product/{id}(id=${rp.id})}" class="related-card group block" style="background:var(--ot-bg);">
+        <div class="aspect-square overflow-hidden relative" style="background:var(--ot-surface);">
+          <img th:if="${rp.imageUrl != null}" class="related-img w-full h-full object-cover" th:src="${rp.imageUrl}" th:alt="${rp.name}" loading="lazy"/>
+        </div>
+        <div class="p-4">
+          <p class="font-mono-sharp text-[11px] uppercase tracking-widest mb-1 group-hover:text-[#e50914] transition-colors" style="color:var(--ot-text);" th:text="${rp.name}">Name</p>
+          <p class="font-mono-sharp text-[13px] font-bold text-[#e50914]" th:text="${rp.price != null ? '$' + #numbers.formatDecimal(rp.price,1,2) : '$—'}">$0.00</p>
+        </div>
+      </a>
+    </div>
+  </section>
 
 </main>
 
 <div th:replace="~{fragments/layout :: footer}"></div>
 <div th:replace="~{fragments/layout :: themeScript}"></div>
 
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+  <button id="lightbox-close" onclick="closeLightbox()">x</button>
+  <img id="lightbox-img" src="" alt="Product zoom"/>
+</div>
+
+<!-- Size guide modal -->
+<div id="size-guide-modal" onclick="closeSizeGuide()">
+  <div class="size-guide-inner" onclick="event.stopPropagation()">
+    <button onclick="closeSizeGuide()" style="position:absolute;top:16px;right:20px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--ot-text-muted);">x</button>
+    <p class="font-mono text-[10px] tracking-[0.3em] uppercase text-[#e50914] mb-1">Olly Threads</p>
+    <h3 class="font-display uppercase text-2xl mb-6" style="color:var(--ot-text);">Size Guide</h3>
+    <table>
+      <thead><tr><th>Size</th><th>Chest (in)</th><th>Length (in)</th><th>Fit</th></tr></thead>
+      <tbody>
+        <tr><td>XS</td><td>32-34</td><td>27</td><td>Slim</td></tr>
+        <tr><td>S</td><td>35-37</td><td>28</td><td>Slim</td></tr>
+        <tr><td>M</td><td>38-40</td><td>29</td><td>Regular</td></tr>
+        <tr><td>L</td><td>41-43</td><td>30</td><td>Regular</td></tr>
+        <tr><td>XL</td><td>44-46</td><td>31</td><td>Regular</td></tr>
+        <tr><td>XXL</td><td>47-49</td><td>32</td><td>Relaxed</td></tr>
+      </tbody>
+    </table>
+    <p class="font-mono text-[10px] mt-4" style="color:var(--ot-text-dim);">Measurements are approximate. When in doubt, size up.</p>
+  </div>
+</div>
+
 <script>
-    var selectedVariantId = null;
-    var selectedStock = 0;
-    var quantity = 1;
+var selectedVariantId = null, selectedSize = null, qty = 1;
 
-    /**
-     * Called by onclick on each in-stock size button.
-     * Sets the selected variant and highlights the chosen button.
-     */
-    function selectSize(btn) {
-        // Clear selection on all size buttons
-        document.querySelectorAll('.size-btn').forEach(function(b) {
-            b.classList.remove('selected');
-        });
-        // Mark this one selected
-        btn.classList.add('selected');
+function selectSize(btn) {
+  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedVariantId = btn.dataset.variantId;
+  selectedSize = btn.dataset.size;
+  document.getElementById('selected-size-label').textContent = selectedSize;
+  document.getElementById('size-error-msg').classList.add('hidden');
+  var stock = parseInt(btn.dataset.stock);
+  var msg = document.getElementById('low-stock-msg');
+  if (stock > 0 && stock <= 5) { msg.textContent = 'ONLY ' + stock + ' LEFT IN THIS SIZE'; msg.classList.remove('hidden'); }
+  else { msg.classList.add('hidden'); }
+}
 
-        selectedVariantId = btn.dataset.variantId;
-        selectedStock = parseInt(btn.dataset.stock, 10);
-        quantity = 1;
-        updateQtyDisplay();
+function adjustQty(d) { qty = Math.max(1, Math.min(10, qty + d)); document.getElementById('qty-display').textContent = qty; }
 
-        document.getElementById('selected-size-label').textContent = '— ' + btn.dataset.size;
+function getCsrf() {
+  var c = document.cookie.split(';').map(s=>s.trim()).find(s=>s.startsWith('XSRF-TOKEN='));
+  return c ? decodeURIComponent(c.split('=')[1]) : '';
+}
 
-        var lowMsg = document.getElementById('low-stock-msg');
-        if (selectedStock < 10) {
-            lowMsg.textContent = 'ONLY ' + selectedStock + ' LEFT IN THIS SIZE';
-            lowMsg.classList.remove('hidden');
-        } else {
-            lowMsg.classList.add('hidden');
-        }
+function handleAddToCart() {
+  if (!selectedVariantId) { document.getElementById('size-error-msg').classList.remove('hidden'); return; }
+  var btn = document.getElementById('add-to-cart-btn');
+  btn.disabled = true; btn.textContent = 'ADDING...';
+  // window.addToCart is exported by cart.js — posts to /api/cart/add,
+  // updates the navbar badge via #cart-count, and fires the toast.
+  window.addToCart(btn.dataset.productId, selectedVariantId, qty)
+    .then(() => {
+      btn.textContent = 'ADDED';
+      btn.classList.add('cart-pulse');
+      setTimeout(() => { btn.textContent = 'ADD TO CART'; btn.disabled = false; btn.classList.remove('cart-pulse'); }, 2000);
+    }).catch(() => { btn.textContent = 'TRY AGAIN'; btn.disabled = false; });
+}
 
-        // Hide size-not-selected error if visible
-        var errMsg = document.getElementById('size-error-msg');
-        if (errMsg) errMsg.classList.add('hidden');
+function openLightbox() { var src = document.getElementById('main-product-img'); if (!src) return; document.getElementById('lightbox-img').src = src.src; document.getElementById('lightbox').classList.add('open'); document.body.style.overflow = 'hidden'; }
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); document.body.style.overflow = ''; }
+function switchThumb(btn) { var img = btn.querySelector('img'); if (img) document.getElementById('main-product-img').src = img.src; }
+function openSizeGuide() { document.getElementById('size-guide-modal').classList.add('open'); }
+function closeSizeGuide() { document.getElementById('size-guide-modal').classList.remove('open'); }
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeLightbox(); closeSizeGuide(); } });
+
+// Drop countdown
+(function() {
+  var wrap = document.getElementById('pd-countdown-wrap');
+  if (!wrap) return;
+  var target = parseInt(wrap.dataset.dropMs, 10);
+  var dEl = document.getElementById('pd-days'), hEl = document.getElementById('pd-hours'), mEl = document.getElementById('pd-mins'), sEl = document.getElementById('pd-secs');
+  function pad(n) { return String(n).padStart(2,'0'); }
+  function tick() {
+    var diff = target - Date.now();
+    if (diff <= 0) { location.reload(); return; }
+    dEl.textContent = pad(Math.floor(diff/86400000));
+    hEl.textContent = pad(Math.floor((diff%86400000)/3600000));
+    mEl.textContent = pad(Math.floor((diff%3600000)/60000));
+    sEl.textContent = pad(Math.floor((diff%60000)/1000));
+  }
+  tick(); setInterval(tick, 1000);
+})();
+
+// Notify me (pre-drop)
+function subscribeNotify() {
+  var email = document.getElementById('notify-email').value.trim();
+  var fb = document.getElementById('notify-feedback');
+  if (!email) { fb.textContent = 'Please enter your email.'; fb.classList.remove('hidden'); return; }
+  fetch('/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-XSRF-TOKEN': getCsrf() }, body: new URLSearchParams({ email }) })
+    .then(r => r.json()).then(data => {
+      fb.textContent = data.code ? 'Subscribed! Welcome code: ' + data.code + '. We will notify you when this drops.' : 'You are already subscribed. We will notify you when this drops.';
+      fb.classList.remove('hidden');
+      document.getElementById('notify-email').value = '';
+    }).catch(() => { fb.textContent = 'Something went wrong. Try again.'; fb.classList.remove('hidden'); });
+}
+</script>
+
+<!-- ── JSON-LD: Product structured data (Google rich results) ──────────── -->
+<script th:inline="javascript" type="application/ld+json">
+/*<![CDATA[*/
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": /*[[${product.name}]]*/ "",
+  "image": /*[[${product.imageUrl}]]*/ "",
+  "description": /*[[${product.description}]]*/ "",
+  "brand": {
+    "@type": "Brand",
+    "name": "Olly Threads"
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": /*[[${canonicalUrl}]]*/ "",
+    "priceCurrency": "USD",
+    "price": /*[[${product.price}]]*/ "",
+    "availability": /*[[${inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}]]*/ "https://schema.org/InStock",
+    "seller": {
+      "@type": "Organization",
+      "name": "Olly Threads"
     }
+  }
+}
+/*]]>*/
+</script>
 
-    function adjustQty(delta) {
-        var newQty = quantity + delta;
-        if (newQty < 1) return;
-        if (selectedVariantId && newQty > selectedStock) return;  // cap at stock
-        if (!selectedVariantId && newQty > 1) return;             // must pick a size first
-        quantity = newQty;
-        updateQtyDisplay();
-    }
-
-    function updateQtyDisplay() {
-        document.getElementById('qty-display').textContent = quantity;
-    }
-
-    function handleAddToCart() {
-        if (!selectedVariantId) {
-            var errMsg = document.getElementById('size-error-msg');
-            if (errMsg) {
-                errMsg.classList.remove('hidden');
-                setTimeout(function() { errMsg.classList.add('hidden'); }, 3000);
-            }
-            return;
-        }
-
-        var productId = document.getElementById('add-to-cart-btn').dataset.productId;
-
-        // window.addToCart is always available — exposed by cart.js at module load time.
-        // cart.js loads as <script type="module"> in layout.html head, so it runs before
-        // any user click and sets window.addToCart. No inline fallback needed.
-        window.addToCart(
-            parseInt(productId, 10),
-            parseInt(selectedVariantId, 10),
-            quantity
-        );
-    }
+<!-- ── JSON-LD: BreadcrumbList ─────────────────────────────────────────── -->
+<script th:inline="javascript" type="application/ld+json">
+/*<![CDATA[*/
+{
+  "@context": "https://schema.org/",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Home",  "item": /*[[${baseUrl}]]*/ "" },
+    { "@type": "ListItem", "position": 2, "name": "Shop",  "item": /*[[${baseUrl + '/shop'}]]*/ "" },
+    { "@type": "ListItem", "position": 3, "name": /*[[${product.name}]]*/ "", "item": /*[[${canonicalUrl}]]*/ "" }
+  ]
+}
+/*]]>*/
 </script>
 
 </body>

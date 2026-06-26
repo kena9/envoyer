@@ -40,4 +40,10 @@ public class CheckoutForm {
 
     @NotBlank(message = "Country is required")
     private String country;
+
+    /** Optional discount code entered at checkout. May be blank. */
+    private String couponCode;
+
+    /** Stripe PaymentIntent ID — set by JS after confirmCardPayment() succeeds. */
+    private String paymentIntentId;
 }

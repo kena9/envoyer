@@ -1,6 +1,8 @@
 package com.akumathreads.service;
 
+import com.akumathreads.model.PasswordResetToken;
 import com.akumathreads.model.User;
+import com.akumathreads.repository.PasswordResetTokenRepository;
 import com.akumathreads.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
@@ -21,8 +24,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserService {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final UserRepository             userRepository;
+    private final PasswordEncoder            passwordEncoder;
+    private final PasswordResetTokenRepository resetTokenRepo;
 
     // ── Read operations ──────────────────────────────────────────────────────
 
@@ -42,12 +46,6 @@ public class UserService {
 
     /**
      * Registers a new customer account.
-     *
-     * @param name        display name
-     * @param email       must be unique
-     * @param rawPassword plain-text password — BCrypt-hashed before persistence
-     * @return the saved {@link User}
-     * @throws IllegalArgumentException if a user with this email already exists
      */
     @Transactional(readOnly = false, rollbackFor = Exception.class)
     public User register(String name, String email, String rawPassword) {
@@ -62,13 +60,64 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    // ── Password reset ────────────────────────────────────────────────────────
+
     /**
-     * Soft-deletes a user account. The {@code @SQLDelete} on {@link User} rewrites
-     * the DELETE to an UPDATE SET deleted = true, preserving the user's order history.
+     * Creates a one-time password reset token for the given email (if the user exists).
+     * Deletes any prior token for this user first.
      *
-     * @param userId PK of the user to soft-delete
-     * @throws EntityNotFoundException if no user with the given ID exists
+     * @return the token string, or {@code null} if no account matches the email
      */
+    @Transactional(readOnly = false, rollbackFor = Exception.class)
+    public String createPasswordResetToken(String email) {
+        Optional<User> userOpt = userRepository.findByEmail(email.toLowerCase().strip());
+        if (userOpt.isEmpty()) return null;
+
+        User user = userOpt.get();
+        // Invalidate any existing token for this user
+        resetTokenRepo.deleteByUserId(user.getId());
+
+        PasswordResetToken token = new PasswordResetToken(user);
+        resetTokenRepo.save(token);
+        return token.getToken();
+    }
+
+    /**
+     * Validates a reset token and returns the associated user if it's valid and unexpired.
+     */
+    public Optional<User> validateResetToken(String token) {
+        return resetTokenRepo.findByToken(token)
+                .filter(t -> !t.isExpired())
+                .map(PasswordResetToken::getUser);
+    }
+
+    /**
+     * Resets the user's password and deletes the used token.
+     *
+     * @return {@code true} on success, {@code false} if the token is invalid/expired
+     */
+    @Transactional(readOnly = false, rollbackFor = Exception.class)
+    public boolean resetPassword(String token, String newRawPassword) {
+        return resetTokenRepo.findByToken(token)
+                .filter(t -> !t.isExpired())
+                .map(t -> {
+                    User user = t.getUser();
+                    user.setPasswordHash(passwordEncoder.encode(newRawPassword));
+                    userRepository.save(user);
+                    resetTokenRepo.delete(t);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    /** Housekeeping: remove expired tokens (can be called from a scheduled task). */
+    @Transactional(readOnly = false, rollbackFor = Exception.class)
+    public void purgeExpiredTokens() {
+        resetTokenRepo.deleteAllExpired(LocalDateTime.now());
+    }
+
+    // ── Account management ────────────────────────────────────────────────────
+
     @Transactional(readOnly = false, rollbackFor = Exception.class)
     public void softDeleteUser(Long userId) {
         User user = userRepository.findById(userId)
@@ -76,12 +125,6 @@ public class UserService {
         userRepository.delete(user);
     }
 
-    /**
-     * Promotes a user to the ADMIN role.
-     *
-     * @param userId PK of the user to promote
-     * @return the updated {@link User}
-     */
     @Transactional(readOnly = false, rollbackFor = Exception.class)
     public User promoteToAdmin(Long userId) {
         User user = userRepository.findById(userId)
@@ -90,13 +133,6 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    /**
-     * Updates a user's display name.
-     *
-     * @param userId  PK of the user
-     * @param newName the new display name (must not be blank)
-     * @return the updated {@link User}
-     */
     @Transactional(readOnly = false, rollbackFor = Exception.class)
     public User updateName(Long userId, String newName) {
         if (newName == null || newName.isBlank()) {

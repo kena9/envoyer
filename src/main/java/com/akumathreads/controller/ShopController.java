@@ -1,6 +1,7 @@
 package com.akumathreads.controller;
 
 import com.akumathreads.model.Product;
+import com.akumathreads.repository.OrderRepository;
 import com.akumathreads.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,86 +15,64 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-/**
- * Handles the public-facing product catalog at {@code /shop}.
- *
- * <p>All parameters are optional and gracefully degrade:
- * <ul>
- *   <li>No keyword → no keyword filter</li>
- *   <li>No category → all categories shown</li>
- *   <li>No price range → no price bound</li>
- *   <li>No sort → newest products first</li>
- *   <li>No page → page 0 (first page, 12 items)</li>
- * </ul>
- *
- * <p>Page size is fixed at {@value #PAGE_SIZE} to keep the 4-column grid balanced.
- */
 @Controller
 @RequestMapping("/shop")
 @RequiredArgsConstructor
 public class ShopController {
 
-    private final ProductService productService;
+    private final ProductService  productService;
+    private final OrderRepository orderRepository;
 
-    /** Products per page — fills a 4-column grid exactly (3 rows). */
     private static final int PAGE_SIZE = 12;
 
-    /**
-     * Main shop listing with dynamic filtering and pagination.
-     *
-     * @param keyword  search term matched against product name + description
-     * @param category exact category from the {@link Product.Category} enum
-     * @param minPrice lower price bound (inclusive)
-     * @param maxPrice upper price bound (inclusive)
-     * @param sort     one of {@code newest} (default), {@code price_asc}, {@code price_desc}
-     * @param page     zero-based page index; defaults to 0
-     */
     @GetMapping
     public String shop(
-            @RequestParam(required = false)                 String keyword,
-            @RequestParam(required = false)                 Product.Category category,
-            @RequestParam(required = false)                 BigDecimal minPrice,
-            @RequestParam(required = false)                 BigDecimal maxPrice,
-            @RequestParam(defaultValue = "newest")          String sort,
-            @RequestParam(defaultValue = "0")               int page,
+            @RequestParam(required = false)        String keyword,
+            @RequestParam(required = false)        Product.Category category,
+            @RequestParam(required = false)        BigDecimal minPrice,
+            @RequestParam(required = false)        BigDecimal maxPrice,
+            @RequestParam(defaultValue = "newest") String sort,
+            @RequestParam(defaultValue = "0")      int page,
             Model model) {
 
-        // Build Sort from the user-selected option
         Sort jpaSort = switch (sort) {
             case "price_asc"  -> Sort.by("price").ascending();
             case "price_desc" -> Sort.by("price").descending();
-            default           -> Sort.by("createdDate").descending(); // "newest"
+            default           -> Sort.by("createdDate").descending();
         };
 
         Pageable pageable = PageRequest.of(Math.max(page, 0), PAGE_SIZE, jpaSort);
 
-        // Clamp price bounds — negative values are semantically nonsense and are
-        // treated as "no bound" rather than rejected outright (graceful degradation).
-        // ProductSpecification uses JPA Criteria API, so there is no SQL-injection risk
-        // regardless, but negative values would return 0 results which is confusing UX.
         BigDecimal effectiveMin = (minPrice != null && minPrice.compareTo(BigDecimal.ZERO) < 0) ? null : minPrice;
         BigDecimal effectiveMax = (maxPrice != null && maxPrice.compareTo(BigDecimal.ZERO) < 0) ? null : maxPrice;
 
-        // Execute filtered, paginated query — variants loaded via @BatchSize (no N+1)
         Page<Product> productPage = productService.findFiltered(
                 blankToNull(keyword), category, effectiveMin, effectiveMax, pageable);
 
-        // ── Thymeleaf model ───────────────────────────────────────────────────
-        model.addAttribute("products",    productPage.getContent());
-        model.addAttribute("productPage", productPage);
+        // Social proof — batch sold count for the page (single query)
+        List<Product> pageProducts = productPage.getContent();
+        Map<Long, Long> soldCountMap = new HashMap<>();
+        if (!pageProducts.isEmpty()) {
+            List<Long> ids = pageProducts.stream().map(Product::getId).collect(Collectors.toList());
+            for (Object[] row : orderRepository.countUnitsSoldByProductIds(ids)) {
+                soldCountMap.put((Long) row[0], (Long) row[1]);
+            }
+        }
 
-        // Active filter values — reflected back into form inputs (use effective values after clamping)
-        model.addAttribute("keyword",   keyword);
-        model.addAttribute("category",  category);
-        model.addAttribute("minPrice",  effectiveMin);
-        model.addAttribute("maxPrice",  effectiveMax);
-        model.addAttribute("sort",      sort);
-
-        // Available categories for the sidebar filter
-        model.addAttribute("categories", Product.Category.values());
-
-        // Pagination helpers for the template
+        model.addAttribute("products",     pageProducts);
+        model.addAttribute("productPage",  productPage);
+        model.addAttribute("soldCountMap", soldCountMap);
+        model.addAttribute("keyword",      keyword);
+        model.addAttribute("category",     category);
+        model.addAttribute("minPrice",     effectiveMin);
+        model.addAttribute("maxPrice",     effectiveMax);
+        model.addAttribute("sort",         sort);
+        model.addAttribute("categories",   Product.Category.values());
         model.addAttribute("currentPage",  productPage.getNumber());
         model.addAttribute("totalPages",   productPage.getTotalPages());
         model.addAttribute("totalItems",   productPage.getTotalElements());
@@ -103,9 +82,6 @@ public class ShopController {
         return "shop";
     }
 
-    // ── Utility ───────────────────────────────────────────────────────────────
-
-    /** Converts blank/whitespace strings to null so the Specification ignores them. */
     private static String blankToNull(String s) {
         return (s == null || s.isBlank()) ? null : s.strip();
     }

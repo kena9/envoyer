@@ -26,6 +26,7 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -141,6 +142,24 @@ public class Product extends BaseAuditEntity {
                 .map(ProductVariant::getId)
                 .orElse(variants.get(0).getId());
     }
+
+
+    // ── Drop / edition mechanics ──────────────────────────────────────────────
+
+    /**
+     * UTC datetime when this product drops publicly.
+     * If in the future, the product page shows a countdown instead of "Add to Cart".
+     * Null means the product is available immediately (no countdown).
+     */
+    @Column(name = "drop_date")
+    private LocalDateTime dropDate;
+
+    /**
+     * Maximum units for this edition (e.g. 50 = limited to 50 pieces).
+     * Null means unlimited. When set, product detail shows "Edition X of Y".
+     */
+    @Column(name = "edition_size")
+    private Integer editionSize;
 
     // ── Enum ─────────────────────────────────────────────────────────────────
 

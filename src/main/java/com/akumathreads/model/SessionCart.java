@@ -77,9 +77,7 @@ public class SessionCart implements Serializable {
      */
     public BigDecimal subtotal() {
         return items.values().stream()
-                .map(e -> e.unitPrice()
-                            .multiply(BigDecimal.valueOf(e.quantity()))
-                            .setScale(2, RoundingMode.HALF_UP))
+                .map(CartEntry::lineTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
     }
@@ -115,6 +113,7 @@ public class SessionCart implements Serializable {
 
         /** Line total — unit price × quantity, rounded to 2dp. */
         public BigDecimal lineTotal() {
+            if (unitPrice == null) return BigDecimal.ZERO;
             return unitPrice.multiply(BigDecimal.valueOf(quantity))
                             .setScale(2, RoundingMode.HALF_UP);
         }

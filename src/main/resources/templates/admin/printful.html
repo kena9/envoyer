@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+>
+
+<head th:replace="~{fragments/layout :: head('Printful Center')}"></head>
+
+<body class="bg-[#0a0a0a] text-white min-h-screen flex flex-col">
+<div th:replace="~{fragments/layout :: navbar}"></div>
+
+<main class="flex-1 max-w-7xl mx-auto w-full px-6 sm:px-10 py-12">
+
+    <!-- ── Header ──────────────────────────────────────────────────────────── -->
+    <div class="mb-10 border-b border-[#1a1a1a] pb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+            <p class="font-mono text-[10px] tracking-[0.35em] uppercase text-[#e50914] mb-2">Admin / Printful</p>
+            <h1 style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+                       font-size: clamp(2rem, 5vw, 3.5rem); line-height: 0.9; letter-spacing: -0.02em;">
+                PRINTFUL CENTER
+            </h1>
+            <p class="font-mono text-[11px] text-[#444] mt-3 tracking-wide">
+                Browse your Printful store products and import them into the catalog with one click.
+            </p>
+            <!-- API status badge — shows connection result for debugging -->
+            <p class="font-mono text-[10px] mt-2 tracking-wide"
+               th:text="${apiStatus}"
+               th:classappend="${apiStatus != null and #strings.startsWith(apiStatus,'✓')} ? 'text-green-500' : 'text-[#e50914]'">
+            </p>
+        </div>
+        <a th:href="@{/admin/dashboard}"
+           class="font-mono text-[10px] tracking-[0.2em] uppercase text-[#444] hover:text-white transition-colors duration-200 shrink-0">
+            ← Back to Dashboard
+        </a>
+    </div>
+
+    <!-- ── Flash messages ──────────────────────────────────────────────────── -->
+    <div th:if="${success}"
+         class="border border-[#22c55e] bg-[#22c55e]/10 px-6 py-4 mb-8">
+        <p class="font-mono text-[11px] text-[#22c55e] tracking-[0.1em]" th:text="${success}"></p>
+    </div>
+    <div th:if="${error}"
+         class="border border-[#e50914] bg-[#e50914]/10 px-6 py-4 mb-8">
+        <p class="font-mono text-[11px] text-[#e50914] tracking-[0.1em]" th:text="${error}"></p>
+    </div>
+
+    <!-- ── Empty state ─────────────────────────────────────────────────────── -->
+    <div th:if="${#lists.isEmpty(syncProducts)}"
+         class="flex flex-col items-center justify-center py-24 text-center border border-[#1a1a1a]">
+        <div class="w-16 h-16 border border-[#222] flex items-center justify-center mb-6">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" class="opacity-20">
+                <rect x="2" y="2" width="24" height="24" stroke="white" stroke-width="2"/>
+                <path d="M8 14h12M14 8v12" stroke="white" stroke-width="2"/>
+            </svg>
+        </div>
+        <p style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size:1.4rem; letter-spacing:0.02em;"
+           class="text-white uppercase mb-2">No Printful Products Found</p>
+        <p class="font-mono text-[11px] text-[#444] tracking-[0.1em] max-w-sm">
+            Set up products in your Printful dashboard first, then come back here to import them into the store.
+        </p>
+        <a href="https://www.printful.com/dashboard/store" target="_blank" rel="noopener"
+           class="mt-6 font-mono text-[10px] tracking-[0.2em] uppercase text-[#e50914] hover:text-white border border-[#e50914] hover:border-white px-6 py-3 transition-colors duration-200">
+            Open Printful Dashboard →
+        </a>
+    </div>
+
+    <!-- ── Product grid ─────────────────────────────────────────────────────── -->
+    <div th:unless="${#lists.isEmpty(syncProducts)}"
+         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-[#1a1a1a]">
+
+        <div th:each="product : ${syncProducts}"
+             class="bg-[#0a0a0a] p-6 flex gap-5 items-start hover:bg-[#0d0d0d] transition-colors duration-200">
+
+            <!-- Thumbnail -->
+            <div class="w-20 h-20 shrink-0 border border-[#1a1a1a] overflow-hidden bg-[#111] flex items-center justify-center">
+                <img th:if="${product.thumbnailUrl != null}"
+                     th:src="${product.thumbnailUrl}"
+                     th:alt="${product.name}"
+                     class="w-full h-full object-cover"/>
+                <svg th:unless="${product.thumbnailUrl != null}"
+                     width="24" height="24" viewBox="0 0 24 24" fill="none" class="opacity-20">
+                    <rect x="1" y="1" width="22" height="22" stroke="white" stroke-width="2"/>
+                    <line x1="1" y1="1" x2="23" y2="23" stroke="white" stroke-width="2"/>
+                </svg>
+            </div>
+
+            <!-- Details -->
+            <div class="flex-1 min-w-0">
+                <p class="font-mono text-[12px] font-bold text-white tracking-[0.05em] uppercase truncate"
+                   th:text="${product.name}">Product Name</p>
+                <p class="font-mono text-[10px] text-[#444] mt-1">
+                    <span th:text="${product.synced}">0</span> /
+                    <span th:text="${product.variants}">0</span> variants synced
+                </p>
+
+                <!-- Sync status badge -->
+                <span th:if="${product.synced == product.variants}"
+                      class="inline-block mt-2 font-mono text-[8px] tracking-[0.2em] uppercase text-[#22c55e] border border-[#22c55e]/40 px-2 py-0.5">
+                    FULLY SYNCED
+                </span>
+                <span th:unless="${product.synced == product.variants}"
+                      class="inline-block mt-2 font-mono text-[8px] tracking-[0.2em] uppercase text-[#f59e0b] border border-[#f59e0b]/40 px-2 py-0.5">
+                    PARTIAL SYNC
+                </span>
+
+                <!-- Import button -->
+                <div class="mt-4">
+                    <a th:href="@{/admin/printful/import/{id}(id=${product.id})}"
+                       class="font-mono text-[9px] tracking-[0.2em] uppercase font-bold
+                              bg-[#e50914] text-white px-4 py-2
+                              hover:bg-[#b8070f] transition-colors duration-200 inline-block">
+                        IMPORT TO STORE
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── How it works ────────────────────────────────────────────────────── -->
+    <div class="mt-12 border-t border-[#1a1a1a] pt-8">
+        <p class="font-mono text-[10px] tracking-[0.25em] uppercase text-[#444] mb-6">HOW IT WORKS</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#1a1a1a]">
+            <div class="bg-[#0a0a0a] p-6">
+                <p class="font-mono text-[9px] tracking-[0.3em] uppercase text-[#e50914] mb-2">01</p>
+                <p class="font-mono text-[11px] font-bold text-white mb-2">Create in Printful</p>
+                <p class="font-mono text-[10px] text-[#444] leading-relaxed">
+                    Design your product and set up sync variants in the Printful dashboard.
+                </p>
+            </div>
+            <div class="bg-[#0a0a0a] p-6">
+                <p class="font-mono text-[9px] tracking-[0.3em] uppercase text-[#e50914] mb-2">02</p>
+                <p class="font-mono text-[11px] font-bold text-white mb-2">Import Here</p>
+                <p class="font-mono text-[10px] text-[#444] leading-relaxed">
+                    Click "Import to Store" — the product appears in your catalog with Printful IDs pre-linked.
+                </p>
+            </div>
+            <div class="bg-[#0a0a0a] p-6">
+                <p class="font-mono text-[9px] tracking-[0.3em] uppercase text-[#e50914] mb-2">03</p>
+                <p class="font-mono text-[11px] font-bold text-white mb-2">Orders Auto-Fulfill</p>
+            </div><!-- /step 3 -->
+        </div><!-- /how it works grid -->
+    </div><!-- /how it works section -->
+
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+<div th:replace="~{fragments/layout :: themeScript}"></div>
+
+</body>
+</html>

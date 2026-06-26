@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:replace="~{fragments/layout :: head('Content Editor — Admin')}"></head>
+
+<body class="bg-[#0a0a0a] text-white min-h-screen flex flex-col">
+
+<style>
+    .font-mono-sharp { font-family: 'Courier New', monospace; }
+
+    .content-row {
+        border-bottom: 1px solid #1a1a1a;
+        padding: 1.25rem 0;
+    }
+    .content-row:last-child { border-bottom: none; }
+
+    .save-btn {
+        font-family: 'Courier New', monospace;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        border: 1.5px solid #e50914;
+        color: #e50914;
+        padding: 0.35rem 0.85rem;
+        background: transparent;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .save-btn:hover { background: #e50914; color: #fff; }
+    .save-btn.saving { opacity: 0.5; cursor: wait; }
+    .save-btn.saved  { border-color: #22c55e; color: #22c55e; }
+    .save-btn.error  { border-color: #f97316; color: #f97316; }
+
+    .content-input {
+        width: 100%;
+        background: #111;
+        border: 1px solid #222;
+        color: #ccc;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        line-height: 1.6;
+        padding: 0.6rem 0.75rem;
+        resize: vertical;
+        transition: border-color 0.15s;
+        outline: none;
+    }
+    .content-input:focus { border-color: #e50914; color: #fff; }
+
+    /* Section card */
+    .section-card {
+        border: 1px solid #1a1a1a;
+        margin-bottom: 2rem;
+    }
+    .section-header {
+        padding: 0.75rem 1.25rem;
+        border-bottom: 1px solid #1a1a1a;
+        background: #0d0d0d;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .section-body { padding: 0 1.25rem; }
+</style>
+
+<div th:replace="~{fragments/layout :: navbar}"></div>
+
+<div class="max-w-5xl mx-auto px-6 sm:px-10 py-14 flex-1 w-full">
+
+    <!-- Page header -->
+    <div class="mb-10 border-b border-[#1a1a1a] pb-8">
+        <div class="flex items-center gap-3 mb-3">
+            <a th:href="@{/admin/dashboard}"
+               class="font-mono-sharp text-[9px] tracking-[0.25em] uppercase hover:text-[#e50914] transition-colors"
+               style="color:var(--ot-text-dim);">← Dashboard</a>
+        </div>
+        <h1 class="font-mono-sharp text-[9px] tracking-[0.35em] uppercase text-[#e50914] mb-3">Admin</h1>
+        <h2 style="font-family:Impact,sans-serif;font-size:2.5rem;letter-spacing:-0.02em;" class="uppercase text-white">
+            Content Editor
+        </h2>
+        <p class="font-mono-sharp text-[12px] mt-3" style="color:var(--ot-text-dim);">
+            Edit any text on the site. Changes go live instantly — no rebuild needed.
+        </p>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="hidden fixed bottom-6 right-6 z-50 font-mono-sharp text-[11px] tracking-[0.15em] uppercase
+                           px-5 py-3 border" style="background:#0a0a0a;">
+    </div>
+
+    <!-- Content groups -->
+    <div th:each="entry : ${grouped}" th:if="${not #lists.isEmpty(entry.value)}">
+
+        <div class="section-card">
+            <div class="section-header">
+                <div class="w-2 h-2 rounded-full bg-[#e50914]"></div>
+                <span class="font-mono-sharp text-[10px] tracking-[0.3em] uppercase text-white"
+                      th:text="${entry.key}">Page</span>
+            </div>
+
+            <div class="section-body">
+                <div th:each="item : ${entry.value}" class="content-row">
+                    <div class="flex flex-col sm:flex-row sm:items-start gap-3">
+
+                        <!-- Label + key -->
+                        <div class="sm:w-56 shrink-0">
+                            <p class="font-mono-sharp text-[12px] font-bold text-white mb-1"
+                               th:text="${item.label}">Label</p>
+                            <p class="font-mono-sharp text-[9px] tracking-[0.1em]"
+                               style="color:var(--ot-text-dim);"
+                               th:text="${item.contentKey}">key</p>
+                        </div>
+
+                        <!-- Input (single-line or textarea) -->
+                        <div class="flex-1 flex items-start gap-3">
+                            <textarea th:if="${item.multiline}"
+                                      class="content-input"
+                                      rows="3"
+                                      th:attr="data-key=${item.contentKey}"
+                                      th:text="${item.contentValue}"></textarea>
+                            <input th:unless="${item.multiline}"
+                                   type="text"
+                                   class="content-input"
+                                   th:attr="data-key=${item.contentKey}"
+                                   th:value="${item.contentValue}" />
+                            <button class="save-btn" onclick="saveContent(this)">Save</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+<div th:replace="~{fragments/layout :: themeScript}"></div>
+
+<script th:inline="javascript">
+    const CSRF_HEADER = 'X-XSRF-TOKEN';
+
+    function getCsrfToken() {
+        const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    function showToast(msg, ok) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.borderColor = ok ? '#22c55e' : '#f97316';
+        t.style.color       = ok ? '#22c55e' : '#f97316';
+        t.classList.remove('hidden');
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.add('hidden'), 2500);
+    }
+
+    function saveContent(btn) {
+        const wrapper = btn.closest('.flex.items-start');
+        const input   = wrapper.querySelector('[data-key]');
+        const key     = input.dataset.key;
+        const value   = input.value !== undefined ? input.value : input.textContent;
+
+        btn.classList.add('saving');
+        btn.textContent = 'Saving…';
+
+        fetch('/admin/content/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                [CSRF_HEADER]: getCsrfToken()
+            },
+            body: JSON.stringify({ key, value })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                btn.classList.remove('saving');
+                btn.classList.add('saved');
+                btn.textContent = 'Saved ✓';
+                showToast('Saved — ' + key, true);
+                setTimeout(() => {
+                    btn.classList.remove('saved');
+                    btn.textContent = 'Save';
+                }, 2000);
+            } else {
+                throw new Error(data.message || 'Unknown error');
+            }
+        })
+        .catch(err => {
+            btn.classList.remove('saving');
+            btn.classList.add('error');
+            btn.textContent = 'Error';
+            showToast('Error: ' + err.message, false);
+            setTimeout(() => {
+                btn.classList.remove('error');
+                btn.textContent = 'Save';
+            }, 3000);
+        });
+    }
+
+    // Allow Ctrl+Enter / Cmd+Enter on textareas to save
+    document.querySelectorAll('textarea.content-input').forEach(ta => {
+        ta.addEventListener('keydown', e => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                ta.closest('.flex.items-start').querySelector('.save-btn').click();
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

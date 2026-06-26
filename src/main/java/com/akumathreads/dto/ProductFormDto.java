@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * Form-backing DTO for the admin product create / edit form.
@@ -60,4 +61,31 @@ public class ProductFormDto {
 
     @Min(value = 0, message = "XXL stock cannot be negative")
     private Integer stockXxl = 0;
+
+
+    // ── Printful sync variant IDs (per size) ─────────────────────────────────
+    // Set when importing a product from Printful. Used by PrintfulService to
+    // push orders to the correct Printful sync variant.
+
+    private Long printfulIdXs;
+    private Long printfulIdS;
+    private Long printfulIdM;
+    private Long printfulIdL;
+    private Long printfulIdXl;
+    private Long printfulIdXxl;
+
+    // ── Drop mechanics ────────────────────────────────────────────────────────
+
+    /**
+     * Drop date/time in UTC.
+     * Format expected from HTML input: "yyyy-MM-ddTHH:mm" (datetime-local).
+     */
+    private LocalDateTime dropDate;
+
+    /**
+     * Edition size — null means unlimited.
+     * When set, product page shows "Edition X of Y" and "Only N left" badge.
+     */
+    private Integer editionSize;
+
 }

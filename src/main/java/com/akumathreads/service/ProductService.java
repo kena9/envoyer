@@ -211,6 +211,8 @@ public class ProductService {
         product.setDescription(form.getDescription());
         product.setCategory(form.getCategory());
         product.setImageUrl(form.getImageUrl());
+        product.setDropDate(form.getDropDate());
+        product.setEditionSize(form.getEditionSize());
 
         // Save first to ensure the product has an ID before variant upsert
         product = productRepository.save(product);
@@ -260,6 +262,8 @@ public class ProductService {
         dto.setDescription(product.getDescription());
         dto.setCategory(product.getCategory());
         dto.setImageUrl(product.getImageUrl());
+        dto.setDropDate(product.getDropDate());
+        dto.setEditionSize(product.getEditionSize());
 
         if (product.getVariants() != null) {
             Map<ProductVariant.Size, Integer> stockMap = product.getVariants().stream()

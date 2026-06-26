@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+>
+
+<head th:replace="~{fragments/layout :: head('Import from Printful')}"></head>
+
+<body class="bg-[#0a0a0a] text-white min-h-screen flex flex-col">
+<div th:replace="~{fragments/layout :: navbar}"></div>
+
+<main class="flex-1 max-w-5xl mx-auto w-full px-6 sm:px-10 py-12">
+
+    <!-- ── Breadcrumb ───────────────────────────────────────────────────────── -->
+    <div class="flex items-center gap-3 font-mono text-[10px] tracking-[0.2em] uppercase text-[#444] mb-10">
+        <a th:href="@{/admin/dashboard}" class="hover:text-white transition-colors">Dashboard</a>
+        <span>/</span>
+        <a th:href="@{/admin/printful}" class="hover:text-white transition-colors">Printful</a>
+        <span>/</span>
+        <span class="text-white" th:text="${syncProduct.name}">Import</span>
+    </div>
+
+    <!-- ── Header ──────────────────────────────────────────────────────────── -->
+    <div class="mb-10 border-b border-[#1a1a1a] pb-8">
+        <p class="font-mono text-[10px] tracking-[0.35em] uppercase text-[#e50914] mb-2">IMPORT PREVIEW</p>
+        <h1 style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+                   font-size: clamp(1.8rem, 4vw, 3rem); line-height: 0.9; letter-spacing: -0.02em;"
+            th:text="${syncProduct.name}">
+            Product Name
+        </h1>
+        <p class="font-mono text-[11px] text-[#444] mt-3">
+            Review the variant mapping below, fill in catalog details, then click Import.
+            The product will be created <span class="text-[#f59e0b]">inactive</span> so you can review it before making it live.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+
+        <!-- ── Left: Form ──────────────────────────────────────────────────── -->
+        <form th:action="@{/admin/printful/import/{id}(id=${syncProduct.id})}"
+              method="post" class="space-y-6">
+
+            <!-- CSRF -->
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+            <!-- Product Name -->
+            <div>
+                <label class="font-mono text-[10px] tracking-[0.2em] uppercase text-[#888] block mb-2">
+                    Catalog Name *
+                </label>
+                <input type="text" name="productName" required
+                       th:value="${syncProduct.name}"
+                       class="w-full bg-[#0d0d0d] border border-[#2a2a2a] text-white
+                              font-mono text-[13px] px-4 py-3
+                              focus:outline-none focus:border-[#e50914] transition-colors duration-200"/>
+            </div>
+
+            <!-- Price -->
+            <div>
+                <label class="font-mono text-[10px] tracking-[0.2em] uppercase text-[#888] block mb-2">
+                    Retail Price (USD) *
+                </label>
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-[#444] text-sm">$</span>
+                    <input type="number" name="price" required step="0.01" min="0.01" placeholder="0.00"
+                           class="w-full bg-[#0d0d0d] border border-[#2a2a2a] text-white
+                                  font-mono text-[13px] pl-8 pr-4 py-3
+                                  focus:outline-none focus:border-[#e50914] transition-colors duration-200"/>
+                </div>
+            </div>
+
+            <!-- Category -->
+            <div>
+                <label class="font-mono text-[10px] tracking-[0.2em] uppercase text-[#888] block mb-2">
+                    Category *
+                </label>
+                <select name="category" required
+                        class="w-full bg-[#0d0d0d] border border-[#2a2a2a] text-white
+                               font-mono text-[13px] px-4 py-3
+                               focus:outline-none focus:border-[#e50914] transition-colors duration-200">
+                    <option value="" disabled selected>Select a category</option>
+                    <option th:each="cat : ${categories}"
+                            th:value="${cat.name()}"
+                            th:text="${cat.name()}">CATEGORY</option>
+                </select>
+            </div>
+
+            <!-- Image URL -->
+            <div>
+                <label class="font-mono text-[10px] tracking-[0.2em] uppercase text-[#888] block mb-2">
+                    Image URL
+                    <span class="text-[#444] normal-case tracking-normal ml-2">(auto-filled from Printful if blank)</span>
+                </label>
+                <input type="url" name="imageUrl"
+                       th:value="${syncProduct.thumbnailUrl}"
+                       placeholder="https://…"
+                       class="w-full bg-[#0d0d0d] border border-[#2a2a2a] text-white
+                              font-mono text-[13px] px-4 py-3
+                              focus:outline-none focus:border-[#e50914] transition-colors duration-200"/>
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label class="font-mono text-[10px] tracking-[0.2em] uppercase text-[#888] block mb-2">
+                    Description
+                </label>
+                <textarea name="description" rows="3"
+                          placeholder="Optional product description…"
+                          class="w-full bg-[#0d0d0d] border border-[#2a2a2a] text-white
+                                 font-mono text-[13px] px-4 py-3 resize-none
+                                 focus:outline-none focus:border-[#e50914] transition-colors duration-200"></textarea>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-4 pt-2">
+                <button type="submit"
+                        class="font-mono text-[10px] tracking-[0.25em] uppercase font-bold
+                               bg-[#e50914] text-white px-8 py-3
+                               hover:bg-[#b8070f] transition-colors duration-200">
+                    IMPORT TO CATALOG
+                </button>
+                <a th:href="@{/admin/printful}"
+                   class="font-mono text-[10px] tracking-[0.25em] uppercase
+                          border border-[#2a2a2a] text-[#888] px-6 py-3
+                          hover:border-white hover:text-white transition-colors duration-200">
+                    CANCEL
+                </a>
+            </div>
+        </form>
+
+        <!-- ── Right: Variant preview ─────────────────────────────────────── -->
+        <aside>
+            <div class="border border-[#1a1a1a] p-6">
+                <p class="font-mono text-[10px] tracking-[0.25em] uppercase text-[#444] mb-4">
+                    VARIANTS TO IMPORT
+                </p>
+
+                <!-- Thumbnail -->
+                <div th:if="${syncProduct.thumbnailUrl != null}"
+                     class="w-full aspect-square border border-[#1a1a1a] overflow-hidden mb-4 bg-[#111]">
+                    <img th:src="${syncProduct.thumbnailUrl}"
+                         th:alt="${syncProduct.name}"
+                         class="w-full h-full object-cover"/>
+                </div>
+
+                <!-- Variant list -->
+                <div class="space-y-2">
+                    <div th:each="variant : ${syncProduct.syncVariants}"
+                         class="flex items-center justify-between py-2 border-b border-[#111]">
+                        <div>
+                            <p class="font-mono text-[11px] text-white" th:text="${variant.sizePart}">SIZE</p>
+                            <p class="font-mono text-[9px] text-[#444] mt-0.5" th:text="${'ID: ' + variant.id}">ID</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span th:if="${variant.synced}"
+                                  class="font-mono text-[8px] tracking-[0.15em] uppercase text-[#22c55e]">SYNCED</span>
+                            <span th:unless="${variant.synced}"
+                                  class="font-mono text-[8px] tracking-[0.15em] uppercase text-[#f59e0b]">UNSYNCED</span>
+                        </div>
+                    </div>
+                    <div th:if="${#lists.isEmpty(syncProduct.syncVariants)}"
+                         class="py-4 text-center">
+                        <p class="font-mono text-[10px] text-[#444]">No variants found</p>
+                    </div>
+                </div>
+
+                <p class="font-mono text-[9px] text-[#333] mt-4 leading-relaxed">
+                    Size labels are extracted from Printful variant names. Sizes not matching XS–XXL will be skipped and can be linked manually after import.
+                </p>
+            </div>
+        </aside>
+    </div>
+
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+<div th:replace="~{fragments/layout :: themeScript}"></div>
+</body>
+</html>

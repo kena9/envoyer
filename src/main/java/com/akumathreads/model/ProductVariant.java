@@ -25,6 +25,13 @@ public class ProductVariant {
     @Column(nullable = false)
     private int stockQty = 0;
 
+    /**
+     * Printful sync variant ID for this size.
+     * Set via the admin Printful center after linking/importing from Printful.
+     * Used when submitting orders to Printful for fulfillment.
+     */
+    private Long printfulSyncVariantId;
+
     public enum Size {
         XS, S, M, L, XL, XXL
     }

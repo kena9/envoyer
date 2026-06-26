@@ -24,7 +24,7 @@
     <div class="absolute top-3 left-3 z-10 flex flex-col gap-1 pointer-events-none">
 
         <!-- Low Stock: > 0 but < 10 units across all variants -->
-        <span th:if="${product.totalStock < 10 and product.totalStock > 0}"
+        <span th:if="${product.totalStock lt 10 and product.totalStock > 0}"
               class="bg-amber-500 text-white text-xs font-bold
                      px-2 py-0.5 rounded-full shadow-sm">
             Low Stock

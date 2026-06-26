@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:replace="~{fragments/layout :: head('About the Artist — Olly Threads')}"></head>
+
+<body class="bg-[#0a0a0a] text-white min-h-screen flex flex-col overflow-x-hidden">
+
+<style>
+    .font-display    { font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-stretch: condensed; }
+    .font-mono-sharp { font-family: 'Courier New', 'Lucida Console', monospace; }
+
+    /* ── Body copy uses a legible sans-serif — not Courier at tiny sizes ── */
+    .body-copy {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+        font-size: 15px;
+        line-height: 1.75;
+        color: var(--ot-text-muted);
+    }
+
+    /* ── Timeline vertical line ──────────────────────────────────────────── */
+    .timeline-line {
+        position: absolute;
+        left: 0; top: 0; bottom: 0; width: 1px;
+        background: linear-gradient(to bottom, #e50914 60%, transparent);
+    }
+    .timeline-dot {
+        position: absolute;
+        left: -4px;
+        width: 9px; height: 9px;
+        border-radius: 50%;
+        background: #e50914;
+        border: 2px solid var(--ot-bg);
+    }
+
+    /* ── Glitch hover on big display text ───────────────────────────────── */
+    @keyframes glitch-1 {
+        0%,100% { clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%); transform: translate(-2px, -2px); }
+        50%      { clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%); transform: translate(2px, 2px); }
+    }
+    @keyframes glitch-2 {
+        0%,100% { clip-path: polygon(0 40%, 100% 40%, 100% 70%, 0 70%); transform: translate(2px, 0); }
+        50%      { clip-path: polygon(0 20%, 100% 20%, 100% 50%, 0 50%); transform: translate(-2px, 0); }
+    }
+    .glitch-wrap { position: relative; display: inline-block; }
+    .glitch-wrap::before, .glitch-wrap::after {
+        content: attr(data-text);
+        position: absolute; left: 0; top: 0;
+        font-family: inherit; font-size: inherit;
+        letter-spacing: inherit; line-height: inherit;
+        pointer-events: none; opacity: 0;
+    }
+    .glitch-wrap::before { color: #e50914; }
+    .glitch-wrap::after  { color: var(--ot-text); }
+    .glitch-wrap:hover::before { animation: glitch-1 0.3s steps(1) infinite; opacity: 0.55; }
+    .glitch-wrap:hover::after  { animation: glitch-2 0.3s steps(1) infinite; opacity: 0.35; }
+
+    /* ── Ink stroke SVG underline ────────────────────────────────────────── */
+    @keyframes ink-draw {
+        from { stroke-dashoffset: 400; }
+        to   { stroke-dashoffset: 0; }
+    }
+    .ink-underline { stroke-dasharray: 400; stroke-dashoffset: 400; }
+    .ink-underline.revealed { animation: ink-draw 1.2s cubic-bezier(0.16,1,0.3,1) 0.3s forwards; }
+
+    /* ── Social card lift ────────────────────────────────────────────────── */
+    .social-card {
+        transition: transform 0.35s cubic-bezier(0.16,1,0.3,1),
+                    border-color 0.2s ease;
+    }
+    .social-card:hover { transform: translateY(-4px); }
+
+    /* ── Principle card ──────────────────────────────────────────────────── */
+    .principle-card {
+        border-top: 1px solid var(--ot-border);
+        transition: border-color 0.25s ease;
+    }
+    .principle-card:hover { border-top-color: #e50914; }
+
+    /* ── Quick-facts table ───────────────────────────────────────────────── */
+    .fact-row {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--ot-border);
+        padding: 10px 0;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+    }
+    .fact-label { color: var(--ot-text-dim); }
+    .fact-value { color: var(--ot-text-muted); }
+
+    /* ── Blockquote ──────────────────────────────────────────────────────── */
+    blockquote { border-left: 2px solid #e50914; padding-left: 1.5rem; }
+</style>
+
+<!-- ── Navbar ──────────────────────────────────────────────────────── -->
+<div th:replace="~{fragments/layout :: navbar}"></div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     HERO
+     ════════════════════════════════════════════════════════════════════ -->
+<section class="relative min-h-[70vh] flex items-center border-b border-[#1a1a1a] overflow-hidden px-6 sm:px-12 lg:px-24">
+
+    <!-- Grain -->
+    <div class="absolute inset-0 opacity-[0.025] pointer-events-none"
+         style="background-image:url('data:image/svg+xml,%3Csvg viewBox=%220 0 256 256%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%224%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E');background-size:200px;">
+    </div>
+
+    <!-- Ghost word -->
+    <span class="absolute right-[-5%] top-1/2 -translate-y-1/2 font-display
+                 uppercase select-none pointer-events-none leading-none"
+          style="font-size:clamp(8rem,22vw,18rem);letter-spacing:-0.04em;
+                 color:var(--ot-text-ghost);" data-parallax="0.06">OLLY</span>
+
+    <div class="relative z-10 max-w-4xl">
+        <div class="flex items-center gap-3 mb-8" data-reveal="slide-right">
+            <div class="w-8 h-[1px] bg-[#e50914]"></div>
+            <span class="font-mono-sharp text-[10px] tracking-[0.35em] text-[#e50914] uppercase"
+                  th:text="${content['about.hero.eyebrow'] ?: 'The Artist Behind the Brand'}">The Artist Behind the Brand</span>
+        </div>
+
+        <h1 class="font-display uppercase leading-[0.85] mb-4" data-reveal="slide-up" data-reveal-delay="150">
+            <span class="block text-white" style="font-size:clamp(3.5rem,10vw,8rem);letter-spacing:-0.02em;">OLIVER</span>
+            <span class="block text-[#e50914]" style="font-size:clamp(3.5rem,10vw,8rem);letter-spacing:-0.02em;">JIN WANG</span>
+        </h1>
+
+        <!-- Ink-drawn underline -->
+        <div class="mb-8 overflow-hidden h-4" data-reveal="fade" data-reveal-delay="400">
+            <svg width="320" height="10" viewBox="0 0 320 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M 2 6 Q 80 2 160 6 Q 240 10 318 5"
+                      stroke="#e50914" stroke-width="1.5" stroke-linecap="round" fill="none"
+                      class="ink-underline"/>
+            </svg>
+        </div>
+
+        <p class="font-mono-sharp text-[10px] tracking-[0.2em] uppercase mb-8" data-reveal="fade" data-reveal-delay="280"
+           style="color:var(--ot-text-dim);">
+            Anime-inspired artist · Age 20 · Original ink illustration
+        </p>
+
+        <p class="body-copy max-w-xl" data-reveal="slide-up" data-reveal-delay="380">
+            Every hoodie, tee, and accessory in this store carries original artwork — hand-drawn in ink
+            by Oliver before it ever touches fabric. No AI. No stock art. No digital shortcuts.
+            Just obsessive line work from someone who grew up on manga and anime, and turned that
+            into a creative practice that bleeds into everything he makes.
+        </p>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     ORIGIN STORY
+     ════════════════════════════════════════════════════════════════════ -->
+<section class="py-32 px-6 sm:px-12 lg:px-24">
+    <div class="max-w-7xl mx-auto grid lg:grid-cols-[1fr_2fr] gap-20 items-start">
+
+        <!-- Left sticky panel -->
+        <div class="lg:sticky lg:top-28">
+            <span class="font-mono-sharp text-[10px] text-[#e50914] tracking-[0.3em] uppercase block mb-4" data-reveal="fade">— Story</span>
+            <h2 class="font-display text-white uppercase leading-none" data-reveal="slide-up" data-reveal-delay="100"
+                style="font-size:clamp(2rem,4vw,3rem);letter-spacing:-0.02em;">The Origin</h2>
+
+            <div class="mt-12 space-y-1" data-reveal="fade" data-reveal-delay="200">
+                <p class="font-mono-sharp text-[9px] tracking-[0.25em] mb-4" style="color:var(--ot-text-dim);">QUICK FACTS</p>
+                <div class="fact-row"><span class="fact-label">Age</span><span class="fact-value" th:text="${content['about.facts.age'] ?: '20'}">20</span></div>
+                <div class="fact-row"><span class="fact-label">Medium</span><span class="fact-value" th:text="${content['about.facts.medium'] ?: 'Ink on paper'}">Ink on paper</span></div>
+                <div class="fact-row"><span class="fact-label">Style</span><span class="fact-value" th:text="${content['about.facts.style'] ?: 'Anime-inspired'}">Anime-inspired</span></div>
+                <div class="fact-row"><span class="fact-label">Founded</span><span class="fact-value" th:text="${content['about.facts.founded'] ?: 'Olly Threads, 2024'}">Olly Threads, 2024</span></div>
+                <div class="fact-row"><span class="fact-label">Fulfillment</span><span class="fact-value" th:text="${content['about.facts.fulfillment'] ?: 'Print on demand'}">Print on demand</span></div>
+            </div>
+        </div>
+
+        <!-- Right: editorial body copy -->
+        <div class="space-y-14">
+
+            <div data-reveal="slide-up">
+                <p class="font-mono-sharp text-[9px] text-[#e50914] tracking-[0.3em] uppercase mb-5">01 / How it started</p>
+                <p class="body-copy mb-5"
+                   th:text="${content['about.story.p1'] ?: 'It started young — a stack of manga volumes borrowed from a friend, a cheap sketchbook, and an obsession with understanding how a single line could communicate weight, speed, and emotion. Before he could drive, Oliver was filling notebooks trying to reverse-engineer the visual language of the art he loved.'}">
+                    It started young — a stack of manga volumes borrowed from a friend, a cheap sketchbook,
+                    and an obsession with understanding how a single line could communicate weight, speed, and emotion.
+                    Before he could drive, Oliver was filling notebooks trying to reverse-engineer the visual
+                    language of the art he loved.
+                </p>
+                <p class="body-copy"
+                   th:text="${content['about.story.p2'] ?: 'What began as copying panels evolved into studying composition — the geometry behind a fight-scene freeze-frame, the way negative space builds tension, how ink pressure alone changes a character''s entire attitude. By his mid-teens, the style had stopped being an imitation and started being something original.'}">
+                    What began as copying panels evolved into studying composition — the geometry behind a
+                    fight-scene freeze-frame, the way negative space builds tension, how ink pressure alone
+                    changes a character's entire attitude. By his mid-teens, the style had stopped being
+                    an imitation and started being something original.
+                </p>
+            </div>
+
+            <blockquote class="py-4" data-reveal="slide-right">
+                <p class="font-display text-white uppercase leading-tight"
+                   style="font-size:clamp(1.3rem,3vw,2rem);letter-spacing:-0.01em;"
+>
+                    &#8220;<span th:text="${content['about.quote'] ?: 'I don''t copy other people''s characters. I draw characters that could exist in their worlds.'}">I don't copy other people's characters. I draw characters that could exist in their worlds.</span>&#8221;
+                </p>
+                <cite class="font-mono-sharp text-[9px] tracking-[0.2em] uppercase mt-4 block not-italic"
+                      style="color:var(--ot-text-dim);">— Oliver Jin Wang</cite>
+            </blockquote>
+
+            <div data-reveal="slide-up">
+                <p class="font-mono-sharp text-[9px] text-[#e50914] tracking-[0.3em] uppercase mb-5">02 / Why clothing</p>
+                <p class="body-copy mb-5"
+                   th:text="${content['about.why.p1'] ?: 'The jump from sketchbook to apparel wasn''t about money — it was about medium. A drawing lives on a page or a screen. A garment lives in the world: on the subway, at a show, in the background of someone else''s photo. That kind of presence felt like a worthy challenge for the work.'}">
+                    The jump from sketchbook to apparel wasn't about money — it was about medium. A drawing lives
+                    on a page or a screen. A garment lives in the world: on the subway, at a show, in the background
+                    of someone else's photo. That kind of presence felt like a worthy challenge for the work.
+                </p>
+                <p class="body-copy"
+                   th:text="${content['about.why.p2'] ?: 'Olly Threads launched print-on-demand deliberately. No overstock, no waste, no warehouse. Every unit is made because someone specifically wanted it — and that makes each piece matter more than if there were a thousand of them sitting in a box somewhere.'}">
+                    Olly Threads launched print-on-demand deliberately. No overstock, no waste, no warehouse.
+                    Every unit is made because someone specifically wanted it — and that makes each piece
+                    matter more than if there were a thousand of them sitting in a box somewhere.
+                </p>
+            </div>
+
+            <div data-reveal="slide-up">
+                <p class="font-mono-sharp text-[9px] text-[#e50914] tracking-[0.3em] uppercase mb-5">03 / The process</p>
+                <p class="body-copy mb-5"
+                   th:text="${content['about.process.p1'] ?: 'Every design starts on paper. Not a tablet — actual paper, with a physical pen that commits to every line. The imperfection of that process is the point: the pressure variation, the slight wobble, the decisions you can''t perfectly undo. That''s what makes it alive.'}">
+                    Every design starts on paper. Not a tablet — actual paper, with a physical pen that commits
+                    to every line. The imperfection of that process is the point: the pressure variation, the
+                    slight wobble, the decisions you can't perfectly undo. That's what makes it alive.
+                </p>
+                <p class="body-copy"
+                   th:text="${content['about.process.p2'] ?: 'After scanning and cleanup, the artwork goes on premium-weight blanks through Printful. Oliver reviews every mockup. If the line doesn''t translate the same way on fabric, it doesn''t go to print.'}">
+                    After scanning and cleanup, the artwork goes on premium-weight blanks through Printful.
+                    Oliver reviews every mockup. If the line doesn't translate the same way on fabric, it
+                    doesn't go to print.
+                </p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     TIMELINE
+     ════════════════════════════════════════════════════════════════════ -->
+<section class="border-t border-[#1a1a1a] py-32 px-6 sm:px-12 lg:px-24"
+         style="background:var(--ot-surface);">
+    <div class="max-w-4xl mx-auto">
+
+        <div class="mb-16" data-reveal="slide-up">
+            <span class="font-mono-sharp text-[10px] text-[#e50914] tracking-[0.3em] uppercase block mb-3">— Timeline</span>
+            <h2 class="font-display text-white uppercase leading-none"
+                style="font-size:clamp(2rem,5vw,3.5rem);letter-spacing:-0.02em;">The Journey</h2>
+        </div>
+
+        <div class="relative pl-10" data-reveal-stagger data-reveal-delay="140">
+            <div class="timeline-line"></div>
+
+            <div class="pb-14 relative">
+                <div class="timeline-dot" style="top:4px;"></div>
+                <p class="font-mono-sharp text-[9px] text-[#e50914] tracking-[0.3em] uppercase mb-2">Early Teens</p>
+                <p class="font-display text-white uppercase text-xl mb-3 leading-tight">First Sketchbook</p>
+                <p class="body-copy" style="max-width:420px;">
+                    Borrowed a manga collection from a friend and filled an entire sketchbook trying to
+                    understand how each panel worked. That obsession with the craft never left.
+                </p>
+            </div>
+
+            <div class="pb-14 relative">
+                <div class="timeline-dot" style="top:4px;"></div>
+                <p class="font-mono-sharp text-[9px] text-[#e50914] tracking-[0.3em] uppercase mb-2">Age 15–16</p>
+                <p class="font-display text-white uppercase text-xl mb-3 leading-tight">Original Style Emerges</p>
+                <p class="body-copy" style="max-width:420px;">
+                    Stopped copying existing characters and started building original ones — informed
+                    by anime and manga but with his own anatomy, expressions, and visual language.
+                </p>
+            </div>
+
+            <div class="pb-14 relative">
+                <div class="timeline-dot" style="top:4px;"></div>
+                <p class="font-mono-sharp text-[9px] text-[#e50914] tracking-[0.3em] uppercase mb-2">Age 17–18</p>
+                <p class="font-display text-white uppercase text-xl mb-3 leading-tight">First Art Videos</p>
+                <p class="body-copy" style="max-width:420px;">
+                    Started posting time-lapses and process videos across TikTok and Instagram.
+                    The response was unexpected — people wanted to see how the work got made,
+                    not just the finished result.
+                </p>
+            </div>
+
+            <div class="pb-14 relative">
+                <div class="timeline-dot" style="top:4px;"></div>
+                <p class="font-mono-sharp text-[9px] text-[#e50914] tracking-[0.3em] uppercase mb-2">Age 19 — 2024</p>
+                <p class="font-display text-white uppercase text-xl mb-3 leading-tight">Olly Threads Launches</p>
+                <p class="body-copy" style="max-width:420px;">
+                    The store went live with a single hoodie design. Sold through the initial run in a
+                    week via social media alone. Series 01 proved the concept.
+                </p>
+            </div>
+
+            <div class="relative">
+                <div class="timeline-dot" style="top:4px; background:#e50914;"></div>
+                <p class="font-mono-sharp text-[9px] text-[#e50914] tracking-[0.3em] uppercase mb-2">Age 20 — Now</p>
+                <p class="font-display text-white uppercase text-xl mb-3 leading-tight">Building the Brand</p>
+                <p class="body-copy" style="max-width:420px;">
+                    Multiple drops shipped, a growing community across five platforms, and every design
+                    still starting the same way — ink on paper, drawn by hand.
+                </p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     WHAT SHAPES THE WORK — artistic principles, not specific titles
+     ════════════════════════════════════════════════════════════════════ -->
+<section class="border-t border-[#1a1a1a] py-28 px-6 sm:px-12 lg:px-24">
+    <div class="max-w-7xl mx-auto">
+
+        <div class="mb-16" data-reveal="slide-up">
+            <span class="font-mono-sharp text-[10px] text-[#e50914] tracking-[0.35em] uppercase block mb-3">— The Craft</span>
+            <h2 class="font-display text-white uppercase leading-none"
+                style="font-size:clamp(2rem,5vw,3.5rem);letter-spacing:-0.02em;">What Shapes the Work</h2>
+            <p class="body-copy mt-5 max-w-lg">
+                The art draws from the full visual tradition of manga and anime illustration —
+                no single IP, no single school. Three principles show up in everything Oliver makes.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-px" style="background:var(--ot-border);"
+             data-reveal-stagger data-reveal-delay="100">
+
+            <!-- Principle 1 -->
+            <div class="p-10" style="background:var(--ot-surface);">
+                <p class="font-display text-[#e50914] uppercase leading-none mb-5"
+                   style="font-size:clamp(3rem,7vw,5rem);letter-spacing:-0.04em;">01</p>
+                <p class="font-display text-white uppercase text-lg mb-4 leading-tight">Character Expression</p>
+                <p class="body-copy">
+                    Posture, eye angle, hand position — the body carries the emotion before a
+                    single word is spoken. Oliver's characters communicate through stance and
+                    micro-gesture the same way great manga panels do.
+                </p>
+            </div>
+
+            <!-- Principle 2 -->
+            <div class="p-10" style="background:var(--ot-surface);">
+                <p class="font-display text-[#e50914] uppercase leading-none mb-5"
+                   style="font-size:clamp(3rem,7vw,5rem);letter-spacing:-0.04em;">02</p>
+                <p class="font-display text-white uppercase text-lg mb-4 leading-tight">Action &amp; Motion</p>
+                <p class="body-copy">
+                    Speed lines, explosive perspective, kinetic energy frozen in a single frame —
+                    the visual grammar of action sequences shapes every composition, even in
+                    pieces that aren't technically depicting movement.
+                </p>
+            </div>
+
+            <!-- Principle 3 -->
+            <div class="p-10" style="background:var(--ot-surface);">
+                <p class="font-display text-[#e50914] uppercase leading-none mb-5"
+                   style="font-size:clamp(3rem,7vw,5rem);letter-spacing:-0.04em;">03</p>
+                <p class="font-display text-white uppercase text-lg mb-4 leading-tight">Line &amp; Negative Space</p>
+                <p class="body-copy">
+                    Raw ink against open space. The contrast between a dense, scratchy line and
+                    a completely empty background is where the tension lives. Brutality made
+                    beautiful through restraint.
+                </p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     SOCIAL / CONNECT
+     ════════════════════════════════════════════════════════════════════ -->
+<section class="border-t border-[#1a1a1a] py-28 px-6 sm:px-12 lg:px-24">
+    <div class="max-w-7xl mx-auto">
+
+        <div class="mb-14 flex flex-col sm:flex-row sm:items-end justify-between gap-6" data-reveal="slide-up">
+            <div>
+                <span class="font-mono-sharp text-[10px] tracking-[0.35em] uppercase block mb-3"
+                      style="color:var(--ot-text-dim);">— Connect</span>
+                <h2 class="font-display text-white uppercase leading-none"
+                    style="font-size:clamp(2rem,5vw,3.5rem);letter-spacing:-0.02em;">Follow Oliver</h2>
+            </div>
+            <p class="body-copy max-w-xs">
+                New art, WIPs, and drop announcements hit social before the store.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3" data-reveal-stagger data-reveal-delay="70">
+
+            <a href="https://www.tiktok.com/@oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+               class="social-card border border-[#1a1a1a] p-6 flex flex-col gap-4 hover:border-[#e50914]">
+                <svg class="w-5 h-5" style="color:var(--ot-text-dim);" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76a4.85 4.85 0 0 1-1.01-.07z"/>
+                </svg>
+                <div>
+                    <p class="font-mono-sharp text-[11px] tracking-[0.2em] uppercase mb-1 text-white">TikTok</p>
+                    <p class="font-mono-sharp text-[10px]" style="color:var(--ot-text-dim);">@oliver_jin_wang</p>
+                </div>
+            </a>
+
+            <a href="https://www.instagram.com/oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+               class="social-card border border-[#1a1a1a] p-6 flex flex-col gap-4 hover:border-[#e50914]">
+                <svg class="w-5 h-5" style="color:var(--ot-text-dim);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                    <circle cx="12" cy="12" r="4"/>
+                    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+                <div>
+                    <p class="font-mono-sharp text-[11px] tracking-[0.2em] uppercase mb-1 text-white">Instagram</p>
+                    <p class="font-mono-sharp text-[10px]" style="color:var(--ot-text-dim);">@oliver_jin_wang</p>
+                </div>
+            </a>
+
+            <a href="https://www.youtube.com/@OliverjinWang" target="_blank" rel="noopener noreferrer"
+               class="social-card border border-[#1a1a1a] p-6 flex flex-col gap-4 hover:border-[#e50914]">
+                <svg class="w-5 h-5" style="color:var(--ot-text-dim);" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.81 3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.81zM9.75 15.5v-7l6.25 3.5-6.25 3.5z"/>
+                </svg>
+                <div>
+                    <p class="font-mono-sharp text-[11px] tracking-[0.2em] uppercase mb-1 text-white">YouTube</p>
+                    <p class="font-mono-sharp text-[10px]" style="color:var(--ot-text-dim);">@OliverjinWang</p>
+                </div>
+            </a>
+
+            <a href="https://x.com/Oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+               class="social-card border border-[#1a1a1a] p-6 flex flex-col gap-4 hover:border-[#e50914]">
+                <svg class="w-5 h-5" style="color:var(--ot-text-dim);" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+                <div>
+                    <p class="font-mono-sharp text-[11px] tracking-[0.2em] uppercase mb-1 text-white">X / Twitter</p>
+                    <p class="font-mono-sharp text-[10px]" style="color:var(--ot-text-dim);">@Oliver_jin_wang</p>
+                </div>
+            </a>
+
+            <a href="https://www.threads.net/@oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+               class="social-card border border-[#1a1a1a] p-6 flex flex-col gap-4 hover:border-[#e50914]">
+                <svg class="w-5 h-5" style="color:var(--ot-text-dim);" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.474 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.856 1.205 8.61.024 12.186 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-.505-1.808-1.403-3.22-2.669-4.2-1.339-1.028-3.138-1.55-5.346-1.565-2.86.02-5.043.87-6.486 2.526C4.665 6.27 3.988 8.56 3.96 12c.028 3.441.706 5.731 2.033 7.107 1.443 1.657 3.624 2.504 6.484 2.526 2.011-.024 3.612-.476 4.938-1.39.909-.629 1.675-1.523 2.252-2.653l1.873.882c-.72 1.43-1.711 2.58-2.931 3.404C16.893 23.18 14.88 23.974 12.186 24zm5.833-14.24c-.107-2.328-1.6-3.72-4.234-3.87-1.79-.104-3.51.571-4.62 1.79-.992 1.1-1.449 2.645-1.356 4.59.083 1.74.686 3.087 1.791 4 1.032.852 2.47 1.28 4.28 1.28h.08c1.27-.007 2.319-.23 3.117-.663.795-.433 1.356-1.083 1.668-1.933.167-.451.255-.923.264-1.41l.01-.784zm-3.01 5.04c-.512.277-1.167.42-1.946.43-1.26-.01-2.22-.31-2.855-.892-.61-.559-.948-1.42-1.009-2.56-.076-1.444.239-2.551.932-3.287.673-.718 1.684-1.078 2.998-1.005 1.657.096 2.513.945 2.58 2.524l.002.043-.003.87c0 .15-.006.3-.016.451-.055.84-.283 1.488-.683 1.933z"/>
+                </svg>
+                <div>
+                    <p class="font-mono-sharp text-[11px] tracking-[0.2em] uppercase mb-1 text-white">Threads</p>
+                    <p class="font-mono-sharp text-[10px]" style="color:var(--ot-text-dim);">@oliver_jin_wang</p>
+                </div>
+            </a>
+
+        </div>
+    </div>
+</section>
+
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+<div th:replace="~{fragments/layout :: themeScript}"></div>
+
+</body>
+</html>

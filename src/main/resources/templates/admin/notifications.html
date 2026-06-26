@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Notification Center')}"></head>
+<body class="min-h-screen bg-[#0a0a0a] flex flex-col">
+
+<div th:replace="~{fragments/layout :: navbar}"></div>
+
+<main class="flex-1 max-w-3xl mx-auto w-full px-6 sm:px-10 py-12">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-10">
+        <div>
+            <p class="font-mono text-[11px] tracking-[0.3em] uppercase text-[#e50914] mb-1">ADMIN</p>
+            <h1 class="font-mono text-2xl font-bold text-white">Notification Center</h1>
+        </div>
+        <a th:href="@{/admin/dashboard}"
+           class="font-mono text-[11px] tracking-[0.2em] uppercase text-[#555] hover:text-white transition-colors">
+            ← Dashboard
+        </a>
+    </div>
+
+    <!-- Subscriber count -->
+    <div class="grid grid-cols-2 gap-4 mb-10">
+        <div class="bg-[#111] border border-[#1a1a1a] p-6">
+            <p class="font-mono text-[10px] tracking-[0.3em] uppercase text-[#555] mb-2">EMAIL SUBSCRIBERS</p>
+            <p class="font-mono text-3xl font-bold text-white" th:text="${subscriberCount}">0</p>
+        </div>
+        <div class="bg-[#111] border border-[#1a1a1a] p-6">
+            <p class="font-mono text-[10px] tracking-[0.3em] uppercase text-[#555] mb-2">PUSH SUBSCRIBERS</p>
+            <p class="font-mono text-3xl font-bold text-white" id="push-count">—</p>
+        </div>
+    </div>
+
+    <!-- Flash messages -->
+    <div th:if="${successMsg}"
+         class="mb-6 px-4 py-3 border border-green-700 bg-green-950/40 text-green-400 font-mono text-xs"
+         th:text="${successMsg}"></div>
+    <div th:if="${warnMsg}"
+         class="mb-6 px-4 py-3 border border-yellow-700 bg-yellow-950/40 text-yellow-400 font-mono text-xs"
+         th:text="${warnMsg}"></div>
+
+    <!-- Send announcement form -->
+    <div class="bg-[#111] border border-[#1a1a1a] p-8">
+        <h2 class="font-mono text-[11px] tracking-[0.3em] uppercase text-[#e50914] mb-6">SEND ANNOUNCEMENT</h2>
+
+        <form th:action="@{/admin/notifications/send}" method="post" class="space-y-6">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+            <!-- Channel -->
+            <div>
+                <label class="block font-mono text-[10px] tracking-[0.2em] uppercase text-[#555] mb-3">
+                    SEND VIA
+                </label>
+                <div class="flex gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="channel" value="both" checked
+                               class="accent-[#e50914]"/>
+                        <span class="font-mono text-xs text-[#aaa]">Email + Push</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="channel" value="email"
+                               class="accent-[#e50914]"/>
+                        <span class="font-mono text-xs text-[#aaa]">Email only</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="channel" value="push"
+                               class="accent-[#e50914]"/>
+                        <span class="font-mono text-xs text-[#aaa]">Push only</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Subject -->
+            <div>
+                <label class="block font-mono text-[10px] tracking-[0.2em] uppercase text-[#555] mb-2">
+                    SUBJECT / TITLE
+                </label>
+                <input type="text" name="subject" required maxlength="120"
+                       placeholder="New drop: Limited edition hoodie"
+                       class="w-full bg-[#0a0a0a] border border-[#222] text-white px-4 py-3
+                              font-mono text-sm focus:outline-none focus:border-[#e50914] transition-colors"/>
+            </div>
+
+            <!-- Message body -->
+            <div>
+                <label class="block font-mono text-[10px] tracking-[0.2em] uppercase text-[#555] mb-2">
+                    MESSAGE
+                </label>
+                <textarea name="message" required rows="5" maxlength="1000"
+                          placeholder="Describe the drop or deal…"
+                          class="w-full bg-[#0a0a0a] border border-[#222] text-white px-4 py-3
+                                 font-mono text-sm focus:outline-none focus:border-[#e50914] transition-colors
+                                 resize-y"></textarea>
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-[#e50914] hover:bg-[#b8070f] text-white font-mono text-[11px]
+                           tracking-[0.2em] uppercase py-4 transition-colors duration-200">
+                SEND ANNOUNCEMENT
+            </button>
+        </form>
+    </div>
+
+    <!-- Info box -->
+    <div class="mt-6 border border-[#1a1a1a] p-5 text-[#555] font-mono text-xs space-y-2">
+        <p class="text-[#333] font-bold uppercase tracking-widest text-[10px] mb-3">How it works</p>
+        <p>Email — sent asynchronously to all active newsletter subscribers. Each email includes a one-click unsubscribe link.</p>
+        <p>Push — sent to all browsers where users have allowed notifications. Appears even when the tab is closed.</p>
+        <p>Users subscribe to push via the bell icon shown on the site (guests + logged-in users).</p>
+    </div>
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+<div th:replace="~{fragments/layout :: themeScript}"></div>
+
+<script>
+    // Show live push subscriber count
+    fetch('/push/vapid-public-key')
+        .then(() => {
+            // If VAPID key endpoint is reachable, just display a note
+            document.getElementById('push-count').textContent = 'See DB';
+        })
+        .catch(() => {
+            document.getElementById('push-count').textContent = '—';
+        });
+</script>
+</body>
+</html>

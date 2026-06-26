@@ -2,7 +2,7 @@
 <html lang="en"
       xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      class="dark">
+>
 
 <head th:replace="~{fragments/layout :: head('Shop')}"></head>
 
@@ -42,13 +42,13 @@
                        font-size: clamp(3rem, 8vw, 6rem);
                        line-height: 0.88;
                        letter-spacing: -0.02em;
-                       color: #ffffff;">
+                       color: var(--ot-text);">
                 THE COLLECTION
             </h1>
 
             <!-- Piece count -->
             <p class="font-mono text-[11px] tracking-[0.2em] uppercase text-[#444] shrink-0 pb-2">
-                <span th:text="${totalItems}" class="text-white">0</span>
+                <span th:text="${totalItems}" style="color:var(--ot-text);">0</span>
                 <span th:text="${totalItems == 1} ? ' PIECE' : ' PIECES'"> PIECES</span>
                 &nbsp;/&nbsp; ART BY
                 <a href="https://www.instagram.com/oliver_jin_wang/"
@@ -76,10 +76,11 @@
                        name="keyword"
                        th:value="${keyword}"
                        placeholder="SEARCH…"
-                       class="bg-transparent border border-[#222] text-white font-mono text-[11px]
-                              tracking-[0.15em] uppercase placeholder-[#333]
+                       class="bg-transparent font-mono text-[11px]
+                              tracking-[0.15em] uppercase
                               px-4 py-2.5 w-44 sm:w-56
-                              focus:outline-none focus:border-[#e50914] transition-colors duration-200"/>
+                              focus:outline-none transition-colors duration-200"
+                       style="border: 1px solid var(--ot-border); color: var(--ot-text);"/>
                 <svg class="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#333]"
                      fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -137,22 +138,22 @@
                            th:value="${minPrice}"
                            placeholder="MIN"
                            min="0" step="1"
-                           class="bg-transparent border border-[#222] text-white font-mono text-[10px]
-                                  tracking-[0.1em] uppercase placeholder-[#333]
+                           class="bg-transparent font-mono text-[10px] tracking-[0.1em] uppercase
                                   pl-6 pr-3 py-2.5 w-20
-                                  focus:outline-none focus:border-[#e50914] transition-colors duration-200"/>
+                                  focus:outline-none transition-colors duration-200"
+                           style="border: 1px solid var(--ot-border); color: var(--ot-text);"/>
                 </div>
-                <span class="font-mono text-[10px] text-[#333]">—</span>
+                <span class="font-mono text-[10px]" style="color:var(--ot-text-dim);">—</span>
                 <div class="relative">
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[10px] text-[#444]">$</span>
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[10px]" style="color:var(--ot-text-dim);">$</span>
                     <input type="number" name="maxPrice"
                            th:value="${maxPrice}"
                            placeholder="MAX"
                            min="0" step="1"
-                           class="bg-transparent border border-[#222] text-white font-mono text-[10px]
-                                  tracking-[0.1em] uppercase placeholder-[#333]
+                           class="bg-transparent font-mono text-[10px] tracking-[0.1em] uppercase
                                   pl-6 pr-3 py-2.5 w-20
-                                  focus:outline-none focus:border-[#e50914] transition-colors duration-200"/>
+                                  focus:outline-none transition-colors duration-200"
+                           style="border: 1px solid var(--ot-border); color: var(--ot-text);"/>
                 </div>
             </div>
 
@@ -247,7 +248,7 @@
                    font-size: clamp(1.6rem, 5vw, 3rem);
                    line-height: 1;
                    letter-spacing: 0.05em;
-                   color: #ffffff;">
+                   color: var(--ot-text);">
             THE VAULT IS CURRENTLY EMPTY.
         </h2>
 
@@ -266,38 +267,38 @@
             <div id="countdown-boxes" class="flex items-start justify-center gap-3">
                 <div class="flex flex-col items-center">
                     <span id="cd-days"
-                          style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size: clamp(2rem, 5vw, 3rem); line-height: 1;"
-                          class="border border-[#222] text-white w-20 h-16 flex items-center justify-center">
-                        --
-                    </span>
-                    <span class="font-mono text-[9px] tracking-[0.25em] uppercase text-[#444] mt-2">DAYS</span>
+                          style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+                                 font-size: clamp(2rem, 5vw, 3rem); line-height: 1;
+                                 border: 1px solid var(--ot-border); color: var(--ot-text);"
+                          class="w-20 h-16 flex items-center justify-center">--</span>
+                    <span class="font-mono text-[9px] tracking-[0.25em] uppercase mt-2" style="color:var(--ot-text-dim);">DAYS</span>
                 </div>
-                <span class="font-mono text-[#333] mt-3 text-2xl">:</span>
+                <span class="font-mono mt-3 text-2xl" style="color:var(--ot-text-muted);">:</span>
                 <div class="flex flex-col items-center">
                     <span id="cd-hours"
-                          style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size: clamp(2rem, 5vw, 3rem); line-height: 1;"
-                          class="border border-[#222] text-white w-20 h-16 flex items-center justify-center">
-                        --
-                    </span>
-                    <span class="font-mono text-[9px] tracking-[0.25em] uppercase text-[#444] mt-2">HOURS</span>
+                          style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+                                 font-size: clamp(2rem, 5vw, 3rem); line-height: 1;
+                                 border: 1px solid var(--ot-border); color: var(--ot-text);"
+                          class="w-20 h-16 flex items-center justify-center">--</span>
+                    <span class="font-mono text-[9px] tracking-[0.25em] uppercase mt-2" style="color:var(--ot-text-dim);">HOURS</span>
                 </div>
-                <span class="font-mono text-[#333] mt-3 text-2xl">:</span>
+                <span class="font-mono mt-3 text-2xl" style="color:var(--ot-text-muted);">:</span>
                 <div class="flex flex-col items-center">
                     <span id="cd-mins"
-                          style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size: clamp(2rem, 5vw, 3rem); line-height: 1;"
-                          class="border border-[#222] text-white w-20 h-16 flex items-center justify-center">
-                        --
-                    </span>
-                    <span class="font-mono text-[9px] tracking-[0.25em] uppercase text-[#444] mt-2">MINUTES</span>
+                          style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+                                 font-size: clamp(2rem, 5vw, 3rem); line-height: 1;
+                                 border: 1px solid var(--ot-border); color: var(--ot-text);"
+                          class="w-20 h-16 flex items-center justify-center">--</span>
+                    <span class="font-mono text-[9px] tracking-[0.25em] uppercase mt-2" style="color:var(--ot-text-dim);">MINUTES</span>
                 </div>
-                <span class="font-mono text-[#333] mt-3 text-2xl">:</span>
+                <span class="font-mono mt-3 text-2xl" style="color:var(--ot-text-muted);">:</span>
                 <div class="flex flex-col items-center">
                     <span id="cd-secs"
-                          style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; font-size: clamp(2rem, 5vw, 3rem); line-height: 1;"
-                          class="border border-[#222] text-white w-20 h-16 flex items-center justify-center">
-                        --
-                    </span>
-                    <span class="font-mono text-[9px] tracking-[0.25em] uppercase text-[#444] mt-2">SECONDS</span>
+                          style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+                                 font-size: clamp(2rem, 5vw, 3rem); line-height: 1;
+                                 border: 1px solid var(--ot-border); color: var(--ot-text);"
+                          class="w-20 h-16 flex items-center justify-center">--</span>
+                    <span class="font-mono text-[9px] tracking-[0.25em] uppercase mt-2" style="color:var(--ot-text-dim);">SECONDS</span>
                 </div>
             </div>
             <!-- Shown instead of boxes when drop date has passed -->
@@ -314,10 +315,9 @@
             <input type="email"
                    id="newsletter-email"
                    placeholder="ENTER EMAIL FOR DROP ALERTS"
-                   class="flex-1 bg-transparent border border-[#222] text-white
-                          font-mono text-[10px] tracking-[0.1em] uppercase placeholder-[#333]
-                          px-4 py-3
-                          focus:outline-none focus:border-[#e50914] transition-colors duration-200"/>
+                   class="flex-1 bg-transparent font-mono text-[10px] tracking-[0.1em] uppercase
+                          px-4 py-3 focus:outline-none transition-colors duration-200"
+                   style="border: 1px solid var(--ot-border); color: var(--ot-text);"/>
             <button type="button"
                     onclick="handleNewsletterSubmit()"
                     class="font-mono text-[10px] tracking-[0.2em] uppercase font-bold
@@ -327,7 +327,7 @@
             </button>
         </div>
 
-        <p class="font-mono text-[10px] tracking-[0.15em] uppercase text-[#333] mb-8">
+        <p class="font-mono text-[10px] tracking-[0.15em] uppercase mb-8" style="color:var(--ot-text-muted);">
             Follow
             <a href="https://www.instagram.com/oliver_jin_wang/"
                target="_blank" rel="noopener noreferrer"
@@ -379,21 +379,30 @@
                 var emailEl = document.getElementById('newsletter-email');
                 var email   = emailEl.value.trim();
 
-                // Basic client-side email validation
                 if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                    if (typeof window.showToast === 'function') {
-                        window.showToast('Enter a valid email address.', 'error');
-                    }
+                    if (typeof window.showToast === 'function') window.showToast('Enter a valid email address.', 'error');
                     emailEl.focus();
                     return;
                 }
 
-                // TODO: replace with a real POST /api/newsletter call when the
-                // backend mailing list endpoint is wired in.
-                emailEl.value = '';
-                if (typeof window.showToast === 'function') {
-                    window.showToast("YOU'RE ON THE LIST.", 'success');
-                }
+                var csrf = document.cookie.split(';').map(c => c.trim())
+                    .find(c => c.startsWith('XSRF-TOKEN='))?.split('=')[1];
+
+                fetch('/subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-XSRF-TOKEN': decodeURIComponent(csrf || '')
+                    },
+                    body: new URLSearchParams({ email: email })
+                }).then(r => {
+                    emailEl.value = '';
+                    if (typeof window.showToast === 'function') {
+                        window.showToast(r.ok ? "YOU\'RE ON THE LIST." : "Something went wrong. Try again.", r.ok ? 'success' : 'error');
+                    }
+                }).catch(() => {
+                    if (typeof window.showToast === 'function') window.showToast('Something went wrong. Try again.', 'error');
+                });
             }
         </script>
     </div>
@@ -403,11 +412,13 @@
          gap-px on a dark bg creates 1px hairline grid lines between cards
          ══════════════════════════════════════════════════════════════════════ -->
     <div th:unless="${#lists.isEmpty(products)}"
-         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px bg-[#1a1a1a]">
+         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-px bg-[#1a1a1a]"
+         data-reveal-stagger>
 
         <article th:each="product : ${products}"
                  class="product-card group relative bg-[#0a0a0a] flex flex-col
-                        hover:bg-[#0f0f0f] transition-all duration-200">
+                        hover:bg-[#0f0f0f] transition-all duration-200"
+                 data-reveal="slide-up">
 
             <!-- Left-edge crimson accent bar on hover -->
             <div class="absolute left-0 top-0 bottom-0 w-[3px] bg-[#e50914] opacity-0
@@ -441,12 +452,12 @@
                              bg-[#0a0a0a] border border-[#e50914] text-[#e50914] px-2 py-1">
                     SOLD OUT
                 </span>
-                <span th:if="${product.totalStock > 0 and product.totalStock < 10}"
-                      class="font-mono text-[9px] tracking-[0.2em] uppercase font-bold
-                             bg-[#0a0a0a] border border-white text-white px-2 py-1">
+                <span th:if="${product.totalStock > 0 and product.totalStock lt 10}"
+                      class="font-mono text-[9px] tracking-[0.2em] uppercase font-bold px-2 py-1"
+                      style="border: 1px solid var(--ot-text); color: var(--ot-text);">
                     ONLY <span th:text="${product.totalStock}">0</span> LEFT
                 </span>
-                <span th:if="${#temporals.createNow().minusDays(14).isBefore(product.createdDate)}"
+                <span th:if="${product.createdDate != null and #temporals.createNow().minusDays(14).isBefore(product.createdDate)}"
                       class="font-mono text-[9px] tracking-[0.2em] uppercase font-bold
                              bg-[#e50914] text-white px-2 py-1">
                     NEW DROP
@@ -458,22 +469,31 @@
 
                 <!-- Category eyebrow -->
                 <span class="font-mono text-[9px] tracking-[0.25em] uppercase text-[#444] mb-2 capitalize"
-                      th:text="${product.category.name().toLowerCase()}">
+                      th:text="${product.category != null ? product.category.name().toLowerCase() : 'uncategorized'}">
                     category
                 </span>
+
+                <!-- Social proof: sold count (shown only when > 0) -->
+                <div th:if="${soldCountMap[product.id] != null and soldCountMap[product.id] > 0}"
+                     class="flex items-center gap-1.5 mb-2">
+                    <span class="block w-1.5 h-1.5 rounded-full bg-[#e50914] animate-pulse"></span>
+                    <span class="font-mono text-[9px] tracking-[0.15em] text-[#e50914]"
+                          th:text="${soldCountMap[product.id]} + ' SOLD'">0 SOLD</span>
+                </div>
 
                 <!-- Product name -->
                 <a th:href="@{/product/{id}(id=${product.id})}"
                    class="font-mono text-[12px] tracking-[0.05em] uppercase font-bold
-                          text-white hover:text-[#e50914] transition-colors duration-200
-                          line-clamp-2 flex-1 leading-tight mb-auto">
+                          hover:text-[#e50914] transition-colors duration-200
+                          line-clamp-2 flex-1 leading-tight mb-auto"
+                   style="color:var(--ot-text);">
                     <span th:text="${product.name}">Product Name</span>
                 </a>
 
                 <!-- Price + CTA row -->
                 <div class="flex items-end justify-between gap-3 mt-4 pt-4 border-t border-[#1a1a1a]">
-                    <p class="font-mono text-[16px] font-bold text-white leading-none">
-                        <span th:text="'$' + ${#numbers.formatDecimal(product.price, 1, 2)}">$0.00</span>
+                    <p class="font-mono text-[16px] font-bold leading-none" style="color:var(--ot-text);">
+                        <span th:text="${product.price != null ? '$' + #numbers.formatDecimal(product.price, 1, 2) : '$—'}">$0.00</span>
                     </p>
 
                     <button th:if="${product.defaultVariantId != null}"
@@ -495,6 +515,8 @@
                     </span>
                 </div>
             </div>
+                <!-- Quick-view — slides up on card hover -->
+                <div class="card-quick-view">VIEW PRODUCT</div>
         </article>
 
     </div><!-- /grid -->
@@ -502,20 +524,21 @@
     <!-- ══════════════════════════════════════════════════════════════════════
          PAGINATION
          ══════════════════════════════════════════════════════════════════════ -->
+    <!-- Pagination -->
     <nav th:if="${totalPages > 1}"
          aria-label="Product catalog pagination"
          class="mt-12 flex items-center justify-center gap-1.5">
 
         <a th:if="${hasPrev}"
            th:href="@{/shop(keyword=${keyword},category=${category},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${currentPage - 1})}"
-           class="font-mono text-[10px] tracking-[0.2em] uppercase
-                  border border-[#222] text-[#444] px-4 py-2.5
+           class="font-mono text-[10px] px-3 h-9 flex items-center justify-center
+                  border border-[#222] text-[#444]
                   hover:border-white hover:text-white transition-colors duration-200">
             ← PREV
         </a>
         <span th:unless="${hasPrev}"
-              class="font-mono text-[10px] tracking-[0.2em] uppercase
-                     border border-[#111] text-[#222] px-4 py-2.5 cursor-not-allowed">
+              class="font-mono text-[10px] px-3 h-9 flex items-center justify-center
+                     border border-[#1a1a1a] text-[#2a2a2a] cursor-default">
             ← PREV
         </span>
 
@@ -536,21 +559,21 @@
 
         <a th:if="${hasNext}"
            th:href="@{/shop(keyword=${keyword},category=${category},minPrice=${minPrice},maxPrice=${maxPrice},sort=${sort},page=${currentPage + 1})}"
-           class="font-mono text-[10px] tracking-[0.2em] uppercase
-                  border border-[#222] text-[#444] px-4 py-2.5
+           class="font-mono text-[10px] px-3 h-9 flex items-center justify-center
+                  border border-[#222] text-[#444]
                   hover:border-white hover:text-white transition-colors duration-200">
             NEXT →
         </a>
         <span th:unless="${hasNext}"
-              class="font-mono text-[10px] tracking-[0.2em] uppercase
-                     border border-[#111] text-[#222] px-4 py-2.5 cursor-not-allowed">
+              class="font-mono text-[10px] px-3 h-9 flex items-center justify-center
+                     border border-[#1a1a1a] text-[#2a2a2a] cursor-default">
             NEXT →
         </span>
     </nav>
 
+</div><!-- /max-w-7xl -->
 </main>
 
-<!-- ── Footer ─────────────────────────────────────────────────────────────── -->
 <div th:replace="~{fragments/layout :: footer}"></div>
 <div th:replace="~{fragments/layout :: themeScript}"></div>
 

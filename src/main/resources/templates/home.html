@@ -2,7 +2,7 @@
 <html lang="en"
       xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
-      class="dark">
+>
 
 <head th:replace="~{fragments/layout :: head('Original Anime Artist Clothing')}"></head>
 
@@ -22,13 +22,13 @@
     }
     .font-mono-sharp { font-family: 'Courier New', 'Lucida Console', monospace; }
 
-    /* Hard border-reveal button */
+    /* Hard border-reveal button — uses CSS vars so it works in both themes */
     .btn-sharp {
         position: relative;
         display: inline-block;
         padding: 0.65rem 1.75rem;
-        border: 1.5px solid #fff;
-        color: #fff;
+        border: 1.5px solid var(--ot-text);
+        color: var(--ot-text);
         font-family: 'Courier New', monospace;
         font-size: 0.7rem;
         font-weight: 700;
@@ -41,14 +41,14 @@
         content: '';
         position: absolute;
         inset: 0;
-        background: #fff;
+        background: var(--ot-text);
         transform: scaleX(0);
         transform-origin: left;
         transition: transform 0.2s ease-out;
         z-index: 0;
     }
     .btn-sharp:hover::before { transform: scaleX(1); }
-    .btn-sharp:hover { color: #0a0a0a; }
+    .btn-sharp:hover { color: var(--ot-bg); }
     .btn-sharp span { position: relative; z-index: 1; }
 
     .btn-sharp-red { border-color: #e50914; color: #e50914; }
@@ -70,28 +70,55 @@
 
     /* Hero image clip */
     .clip-diagonal { clip-path: polygon(8% 0%, 100% 0%, 92% 100%, 0% 100%); }
+
+    /* ── Hero CSS animations — no JS dependency ────────────────────────
+       These run purely via CSS so the hero is never stuck invisible,
+       even if the themeScript fails to load or execute.                */
+    @keyframes h-slide-up    { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:none; } }
+    @keyframes h-slide-right { from { opacity:0; transform:translateX(-28px); } to { opacity:1; transform:none; } }
+    @keyframes h-fade        { from { opacity:0; } to { opacity:1; } }
+    @keyframes h-slide-left  { from { opacity:0; transform:translateX(28px); } to { opacity:1; transform:none; } }
+    .hero-in-right  { animation: h-slide-right 0.75s cubic-bezier(0.16,1,0.3,1) both; }
+    .hero-in-up     { animation: h-slide-up    0.75s cubic-bezier(0.16,1,0.3,1) both; }
+    .hero-in-fade   { animation: h-fade        0.75s ease both; }
+    .hero-in-left   { animation: h-slide-left  0.75s cubic-bezier(0.16,1,0.3,1) both; }
+    .hero-d1  { animation-delay: 0.10s; }
+    .hero-d2  { animation-delay: 0.22s; }
+    .hero-d3  { animation-delay: 0.34s; }
+    .hero-d4  { animation-delay: 0.48s; }
+    .hero-d5  { animation-delay: 0.58s; }
+    .hero-d6  { animation-delay: 0.70s; }
+    .hero-d7  { animation-delay: 0.20s; }
 </style>
 
 <!-- ── Announcement ticker ───────────────────────────────────── -->
 <div class="bg-[#e50914] overflow-hidden whitespace-nowrap"
      style="height:26px; line-height:26px;">
     <div class="animate-ticker inline-block">
-        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10">⚔ NEW DROP — OLLY THREADS SERIES 01</span>
+        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10"
+              th:text="'⚔ ' + ${content['global.ticker.drop'] ?: 'NEW DROP — OLLY THREADS SERIES 01'}">⚔ NEW DROP</span>
         <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-6 opacity-50">//</span>
-        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10">FREE SHIPPING OVER $75</span>
+        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10"
+              th:text="${content['global.ticker.shipping'] ?: 'FREE SHIPPING OVER $75'}">FREE SHIPPING</span>
         <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-6 opacity-50">//</span>
-        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10">ART BY @OLIVER_JIN_WANG — ORIGINAL INK</span>
+        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10"
+              th:text="${content['global.ticker.handle'] ?: 'ART BY @OLIVER_JIN_WANG — ORIGINAL INK'}">ORIGINAL INK</span>
         <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-6 opacity-50">//</span>
-        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10">PRINT-ON-DEMAND × NO RESTOCKS</span>
+        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10"
+              th:text="${content['global.ticker.info'] ?: 'PRINT-ON-DEMAND × NO RESTOCKS'}">PRINT-ON-DEMAND</span>
         <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-6 opacity-50">//</span>
         <!-- duplicate for seamless loop -->
-        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10">⚔ NEW DROP — OLLY THREADS SERIES 01</span>
+        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10"
+              th:text="'⚔ ' + ${content['global.ticker.drop'] ?: 'NEW DROP — OLLY THREADS SERIES 01'}">⚔ NEW DROP</span>
         <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-6 opacity-50">//</span>
-        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10">FREE SHIPPING OVER $75</span>
+        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10"
+              th:text="${content['global.ticker.shipping'] ?: 'FREE SHIPPING OVER $75'}">FREE SHIPPING</span>
         <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-6 opacity-50">//</span>
-        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10">ART BY @OLIVER_JIN_WANG — ORIGINAL INK</span>
+        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10"
+              th:text="${content['global.ticker.handle'] ?: 'ART BY @OLIVER_JIN_WANG — ORIGINAL INK'}">ORIGINAL INK</span>
         <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-6 opacity-50">//</span>
-        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10">PRINT-ON-DEMAND × NO RESTOCKS</span>
+        <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-10"
+              th:text="${content['global.ticker.info'] ?: 'PRINT-ON-DEMAND × NO RESTOCKS'}">PRINT-ON-DEMAND</span>
         <span class="font-mono-sharp text-[9px] font-bold tracking-[0.3em] uppercase px-6 opacity-50">//</span>
     </div>
 </div>
@@ -113,15 +140,16 @@
     <div class="relative z-10 flex-1 flex flex-col justify-center
                 px-8 sm:px-12 lg:px-20 xl:px-28 pt-16 pb-20 lg:pt-0 lg:pb-0 max-w-none lg:max-w-[55%]">
 
-        <div class="flex items-center gap-3 mb-8">
+        <div class="flex items-center gap-3 mb-8 hero-in-right hero-d1">
             <div class="w-8 h-[1px] bg-[#e50914]"></div>
-            <span class="font-mono-sharp text-[10px] tracking-[0.35em] text-[#e50914] uppercase">Drop 01 — Limited Series</span>
+            <span class="font-mono-sharp text-[10px] tracking-[0.35em] text-[#e50914] uppercase"
+                  th:text="${content['home.hero.eyebrow'] ?: 'Drop 01 — Limited Series'}">Drop 01 — Limited Series</span>
         </div>
 
         <h1 class="font-display leading-[0.85] mb-2 select-none">
-            <span class="block text-white uppercase"
+            <span class="block text-white uppercase hero-in-up hero-d2"
                   style="font-size:clamp(4.5rem,12vw,9rem);letter-spacing:-0.02em;">OLLY</span>
-            <span class="block text-[#e50914] uppercase relative"
+            <span class="block text-[#e50914] uppercase relative hero-in-up hero-d3"
                   style="font-size:clamp(4.5rem,12vw,9rem);letter-spacing:-0.02em;margin-left:clamp(1rem,4vw,3rem);">
                 THREADS
                 <span class="absolute bottom-1 left-0 right-0 h-[3px] bg-[#e50914] opacity-20"></span>
@@ -129,12 +157,13 @@
         </h1>
 
         <!-- Signature wordmark under headline -->
-        <p style="font-family:'Pinyon Script',cursive;font-size:clamp(1.8rem,4vw,2.8rem);color:#333;line-height:1;margin-top:0.5rem;margin-bottom:2rem;">
+        <p class="hero-in-fade hero-d4"
+           style="font-family:'Pinyon Script',cursive;font-size:clamp(1.8rem,4vw,2.8rem);color:var(--ot-border-2);line-height:1;margin-top:0.5rem;margin-bottom:2rem;">
             by oliver jin wang
         </p>
 
-        <div class="flex flex-wrap items-center gap-5 mb-16">
-            <a th:href="@{/shop}" class="btn-sharp"><span>Shop Collection</span></a>
+        <div class="flex flex-wrap items-center gap-5 mb-16 hero-in-up hero-d5">
+            <a th:href="@{/shop}" class="btn-sharp" data-magnetic><span>Shop Collection</span></a>
             <a href="https://www.instagram.com/oliver_jin_wang/" target="_blank" rel="noopener noreferrer"
                class="font-mono-sharp text-[10px] text-[#444] tracking-[0.2em] uppercase hover:text-[#e50914] transition-colors slash-reveal">
                 @oliver_jin_wang
@@ -142,7 +171,7 @@
         </div>
 
         <!-- Stats -->
-        <div class="flex gap-10 pt-10 border-t border-[#1a1a1a]">
+        <div class="flex gap-10 pt-10 border-t border-[#1a1a1a] hero-in-up hero-d6">
             <div>
                 <p class="font-display text-white" style="font-size:clamp(2.5rem,7vw,4.5rem);line-height:1;letter-spacing:-0.04em;">01</p>
                 <p class="font-mono-sharp text-[9px] text-[#3a3a3a] tracking-[0.25em] uppercase mt-1">Active Drop</p>
@@ -162,7 +191,7 @@
 
     <!-- RIGHT: clipped product frame -->
     <div class="hidden lg:flex flex-col justify-center items-center
-                flex-1 relative bg-[#0d0d0d] border-l border-[#1a1a1a] overflow-hidden">
+                flex-1 relative bg-[#0d0d0d] border-l border-[#1a1a1a] overflow-hidden hero-in-left hero-d7">
 
         <div class="absolute inset-0 opacity-[0.035]"
              style="background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px);background-size:48px 48px;">
@@ -182,12 +211,12 @@
                          class="w-full h-full object-cover card-img"/>
                     <div th:unless="${latestProducts[0].imageUrl != null}"
                          class="w-full h-full flex items-center justify-center">
-                        <span style="font-family:'Pinyon Script',cursive;font-size:5rem;color:#1a1a1a;line-height:1;">Olly</span>
+                        <span style="font-family:'Pinyon Script',cursive;font-size:5rem;color:var(--ot-border);line-height:1;">Olly</span>
                     </div>
                 </th:block>
                 <div th:if="${latestProducts == null or latestProducts.isEmpty()}"
                      class="w-full h-full flex items-center justify-center">
-                    <span style="font-family:'Pinyon Script',cursive;font-size:5rem;color:#1a1a1a;line-height:1;">Olly</span>
+                    <span style="font-family:'Pinyon Script',cursive;font-size:5rem;color:var(--ot-border);line-height:1;">Olly</span>
                 </div>
             </div>
 
@@ -211,13 +240,13 @@
 <section class="bg-[#0a0a0a] py-28 px-6 sm:px-10 lg:px-16 xl:px-24">
     <div class="max-w-7xl mx-auto">
 
-        <div class="flex items-end justify-between mb-14">
+        <div class="flex items-end justify-between mb-14" data-reveal="slide-up">
             <div>
                 <span class="font-mono-sharp text-[10px] text-[#e50914] tracking-[0.3em] uppercase block mb-3">— Latest Arrivals</span>
                 <h2 class="font-display text-white uppercase leading-none"
                     style="font-size:clamp(2.2rem,5vw,3.8rem);letter-spacing:-0.02em;">New Drops</h2>
             </div>
-            <a th:href="@{/shop}" class="btn-sharp-red btn-sharp hidden sm:inline-block"><span>View All</span></a>
+            <a th:href="@{/shop}" class="btn-sharp-red btn-sharp hidden sm:inline-block" data-magnetic><span>View All</span></a>
         </div>
 
         <div th:if="${latestProducts == null or latestProducts.isEmpty()}"
@@ -226,10 +255,12 @@
         </div>
 
         <div th:unless="${latestProducts == null or latestProducts.isEmpty()}"
-             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-[#1a1a1a]">
+             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-[#1a1a1a]"
+             data-reveal-stagger data-reveal-delay="100">
 
             <article th:each="product, stat : ${latestProducts}"
                      class="product-card group relative bg-[#0d0d0d] overflow-hidden"
+                     data-reveal="slide-up"
                      th:classappend="${stat.index == 1} ? 'lg:mt-12' : ''">
 
                 <a th:href="@{/product/{id}(id=${product.id})}"
@@ -240,7 +271,7 @@
                          class="w-full h-full object-cover card-img opacity-90 group-hover:opacity-100 transition-opacity duration-500"/>
                     <div th:unless="${product.imageUrl != null}"
                          class="w-full h-full flex items-center justify-center">
-                        <span style="font-family:'Pinyon Script',cursive;font-size:4rem;color:#1a1a1a;">Olly</span>
+                        <span style="font-family:'Pinyon Script',cursive;font-size:4rem;color:var(--ot-border);">Olly</span>
                     </div>
                     <!-- Hover overlay -->
                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent
@@ -255,7 +286,7 @@
                     <div>
                         <span th:if="${product.totalStock == 0}"
                               class="font-mono-sharp text-[9px] text-[#e50914] tracking-[0.2em] uppercase block mb-1">Sold Out</span>
-                        <span th:if="${product.totalStock > 0 and product.totalStock < 10}"
+                        <span th:if="${product.totalStock > 0 and product.totalStock lt 10}"
                               class="font-mono-sharp text-[9px] text-[#e59000] tracking-[0.2em] uppercase block mb-1">
                             <span th:text="${product.totalStock}">0</span> left
                         </span>
@@ -264,8 +295,10 @@
                            th:text="${product.name}">Product Name</a>
                     </div>
                     <span class="font-mono-sharp text-white text-sm font-bold shrink-0"
-                          th:text="'$' + ${#numbers.formatDecimal(product.price,1,2)}">$0.00</span>
+                          th:text="${product.price != null ? '$' + #numbers.formatDecimal(product.price,1,2) : '$—'}">$0.00</span>
                 </div>
+                <!-- Quick-view label — slides up on hover via CSS -->
+                <div class="card-quick-view">VIEW PRODUCT</div>
             </article>
         </div>
 
@@ -281,14 +314,16 @@
 <section class="bg-[#e50914] py-20 px-6 sm:px-10 overflow-hidden">
     <div class="max-w-7xl mx-auto relative">
         <span class="absolute -top-6 right-0 font-display text-black/[0.12] uppercase select-none pointer-events-none"
-              style="font-size:clamp(5rem,18vw,14rem);letter-spacing:-0.04em;line-height:1;">OLLY</span>
+              style="font-size:clamp(5rem,18vw,14rem);letter-spacing:-0.04em;line-height:1;" data-parallax="0.08">OLLY</span>
         <div class="relative z-10 max-w-xl">
-            <p class="font-mono-sharp text-[10px] text-black/50 tracking-[0.35em] uppercase mb-5">The Mission</p>
-            <p class="font-display text-black uppercase leading-[0.88] mb-6"
+            <p class="font-mono-sharp text-[10px] text-black/50 tracking-[0.35em] uppercase mb-5" data-reveal="fade">The Mission</p>
+            <p class="font-display text-black uppercase leading-[0.88] mb-6" data-reveal="slide-up" data-reveal-delay="100"
                style="font-size:clamp(1.8rem,4.5vw,3.2rem);letter-spacing:-0.01em;">
                 Every design is drawn by hand. Every piece is printed to order. No waste. No fakes.
             </p>
-            <p class="font-mono-sharp text-black/60 text-xs tracking-wide leading-relaxed max-w-sm">
+            <p class="leading-relaxed max-w-sm" data-reveal="slide-up" data-reveal-delay="200"
+               style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+                      font-size:15px; color:rgba(0,0,0,0.7);">
                 Olly Threads exists to bridge original anime art with wearable culture.
                 Designed by <strong>@oliver_jin_wang</strong>, fulfilled on demand — so every unit matters.
             </p>
@@ -302,14 +337,14 @@
 <section class="bg-[#0a0a0a] py-32 px-6 sm:px-10 lg:px-16 xl:px-24">
     <div class="max-w-7xl mx-auto">
 
-        <div class="mb-20">
+        <div class="mb-20" data-reveal="slide-up">
             <span class="font-mono-sharp text-[10px] text-[#444] tracking-[0.35em] uppercase block mb-3">— Browse By</span>
             <h2 class="font-display text-white uppercase leading-none"
                 style="font-size:clamp(2.2rem,5vw,3.8rem);letter-spacing:-0.02em;">The Range</h2>
         </div>
 
         <!-- Borderless editorial stack — each row is its own typographic statement -->
-        <div class="space-y-0">
+        <div class="space-y-0" data-reveal-stagger data-reveal-delay="100">
 
             <!-- HOODIES -->
             <a th:href="@{/shop(category='HOODIE')}"
@@ -411,8 +446,8 @@
 
         <!-- Left: editorial copy -->
         <div class="lg:sticky lg:top-28">
-            <span class="font-mono-sharp text-[10px] text-[#444] tracking-[0.35em] uppercase block mb-6">— The Artist</span>
-            <h2 class="font-display text-white uppercase leading-[0.88] mb-8"
+            <span class="font-mono-sharp text-[10px] text-[#444] tracking-[0.35em] uppercase block mb-6" data-reveal="fade">— The Artist</span>
+            <h2 class="font-display text-white uppercase leading-[0.88] mb-8" data-reveal="slide-up" data-reveal-delay="100"
                 style="font-size:clamp(2.8rem,6vw,5rem);letter-spacing:-0.02em;">
                 Drawn by<br/>
                 <span class="text-[#e50914]">Hand.</span><br/>
@@ -420,10 +455,11 @@
                 You.
             </h2>
             <!-- Signature below the headline -->
-            <p style="font-family:'Pinyon Script',cursive;font-size:2.2rem;color:#2a2a2a;line-height:1;margin-bottom:1.5rem;">
+            <p style="font-family:'Pinyon Script',cursive;font-size:2.2rem;color:var(--ot-border-2);line-height:1;margin-bottom:1.5rem;">
                 oliver jin wang
             </p>
-            <p class="font-mono-sharp text-[#444] text-xs tracking-wide leading-relaxed max-w-xs mb-10">
+            <p class="font-mono-sharp text-[13px] leading-relaxed max-w-xs mb-10" style="color:var(--ot-text-muted);"
+               th:text="${content['home.artist.body'] ?: 'Every piece starts as original ink on paper. No AI art. No stock assets. Pure anime-inspired illustration — independent and intentional.'}">
                 Every piece starts as original ink on paper. No AI art. No stock assets.
                 Pure anime-inspired illustration — independent and intentional.
             </p>
@@ -433,7 +469,7 @@
         </div>
 
         <!-- Right: lookbook numbered list — NO BOXES, massive numbers -->
-        <div class="space-y-0">
+        <div class="space-y-0" data-reveal-stagger data-reveal-delay="120">
 
             <!-- 01 -->
             <div class="pt-12 pb-12 border-t border-[#1a1a1a]">
@@ -441,7 +477,7 @@
                    style="font-size:clamp(4rem,10vw,7rem);letter-spacing:-0.04em;line-height:1;">01</p>
                 <p class="font-display text-white uppercase text-2xl leading-none mb-4"
                    style="letter-spacing:-0.01em;">Original Artwork</p>
-                <p class="font-mono-sharp text-[#3a3a3a] text-xs tracking-wide leading-relaxed max-w-xs">
+                <p class="font-mono-sharp text-[13px] leading-relaxed max-w-xs" style="color:var(--ot-text-muted);">
                     Each design is hand-drawn by the artist. No templates, no clip art. Every line is intentional.
                 </p>
             </div>
@@ -452,7 +488,7 @@
                    style="font-size:clamp(4rem,10vw,7rem);letter-spacing:-0.04em;line-height:1;">02</p>
                 <p class="font-display text-white uppercase text-2xl leading-none mb-4"
                    style="letter-spacing:-0.01em;">Printed on Demand</p>
-                <p class="font-mono-sharp text-[#3a3a3a] text-xs tracking-wide leading-relaxed max-w-xs">
+                <p class="font-mono-sharp text-[13px] leading-relaxed max-w-xs" style="color:var(--ot-text-muted);">
                     Fulfilled via Printify on premium-weight blanks. Every order is fresh — made for you.
                 </p>
             </div>
@@ -463,7 +499,7 @@
                    style="font-size:clamp(4rem,10vw,7rem);letter-spacing:-0.04em;line-height:1;">03</p>
                 <p class="font-display text-white uppercase text-2xl leading-none mb-4"
                    style="letter-spacing:-0.01em;">Limited Runs</p>
-                <p class="font-mono-sharp text-[#3a3a3a] text-xs tracking-wide leading-relaxed max-w-xs">
+                <p class="font-mono-sharp text-[13px] leading-relaxed max-w-xs" style="color:var(--ot-text-muted);">
                     Once a drop ends, it's gone. No restocks — that's the point.
                 </p>
             </div>
@@ -474,7 +510,7 @@
                    style="font-size:clamp(4rem,10vw,7rem);letter-spacing:-0.04em;line-height:1;">04</p>
                 <p class="font-display text-white uppercase text-2xl leading-none mb-4"
                    style="letter-spacing:-0.01em;">Ships Worldwide</p>
-                <p class="font-mono-sharp text-[#3a3a3a] text-xs tracking-wide leading-relaxed max-w-xs">
+                <p class="font-mono-sharp text-[13px] leading-relaxed max-w-xs" style="color:var(--ot-text-muted);">
                     Global fulfillment network. Tracked from print to your door.
                 </p>
             </div>
@@ -484,30 +520,181 @@
 </section>
 
 <!-- ════════════════════════════════════════════════════════════
-     CLOSING CTA
+     FOLLOW THE ARTIST — Social channels
      ════════════════════════════════════════════════════════════ -->
-<section class="bg-[#0a0a0a] py-36 px-6 text-center relative overflow-hidden">
-    <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-                 font-display text-white/[0.018] uppercase select-none pointer-events-none"
-          style="font-size:clamp(6rem,22vw,20rem);letter-spacing:-0.05em;white-space:nowrap;">SHOP</span>
-    <div class="relative z-10">
-        <p class="font-mono-sharp text-[#e50914] text-[10px] tracking-[0.45em] uppercase mb-6">Series One — Now Available</p>
-        <h2 class="font-display text-white uppercase mb-10"
-            style="font-size:clamp(3.5rem,9vw,7.5rem);letter-spacing:-0.03em;line-height:0.88;">
-            Don't<br/>Sleep.
-        </h2>
-        <!-- Signature under the CTA -->
-        <p style="font-family:'Pinyon Script',cursive;font-size:2rem;color:#222;line-height:1;margin-bottom:2.5rem;">
-            olly threads
-        </p>
-        <a th:href="@{/shop}" class="btn-sharp text-base px-10 py-4"><span>Enter the Drop</span></a>
+<section class="bg-[#0a0a0a] border-t border-[#1a1a1a] py-28 px-6 sm:px-10 lg:px-16 xl:px-24">
+    <div class="max-w-7xl mx-auto">
+
+        <!-- Section header -->
+        <div class="mb-16 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4" data-reveal="slide-up">
+            <div>
+                <span class="font-mono-sharp text-[10px] text-[#444] tracking-[0.35em] uppercase block mb-3">— @oliver_jin_wang</span>
+                <h2 class="font-display text-white uppercase leading-none"
+                    style="font-size:clamp(2rem,5vw,3.5rem);letter-spacing:-0.02em;">Follow the Artist</h2>
+            </div>
+            <p class="font-mono-sharp text-[11px] text-[#333] max-w-xs leading-relaxed">
+                Art drops, WIPs, behind-the-scenes — before they hit the store.
+            </p>
+        </div>
+
+        <!-- Social grid — 5 platforms -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-px bg-[#1a1a1a]"
+             data-reveal-stagger data-reveal-delay="70">
+
+            <!-- TikTok -->
+            <a href="https://www.tiktok.com/@oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+               class="group bg-[#0d0d0d] p-8 flex flex-col gap-6 hover:bg-[#111] transition-colors duration-200">
+                <svg class="w-6 h-6 text-[#333] group-hover:text-white transition-colors duration-200" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76a4.85 4.85 0 0 1-1.01-.07z"/>
+                </svg>
+                <div>
+                    <p class="font-mono-sharp text-[10px] tracking-[0.25em] uppercase text-white mb-1">TikTok</p>
+                    <p class="font-mono-sharp text-[9px] text-[#333] group-hover:text-[#555] transition-colors duration-200">@oliver_jin_wang</p>
+                </div>
+                <p class="font-mono-sharp text-[9px] text-[#555] group-hover:text-[#e50914] transition-colors duration-200 mt-auto tracking-[0.15em] uppercase">
+                    Watch →
+                </p>
+            </a>
+
+            <!-- Instagram -->
+            <a href="https://www.instagram.com/oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+               class="group bg-[#0d0d0d] p-8 flex flex-col gap-6 hover:bg-[#111] transition-colors duration-200">
+                <svg class="w-6 h-6 text-[#333] group-hover:text-white transition-colors duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                    <circle cx="12" cy="12" r="4"/>
+                    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+                <div>
+                    <p class="font-mono-sharp text-[10px] tracking-[0.25em] uppercase text-white mb-1">Instagram</p>
+                    <p class="font-mono-sharp text-[9px] text-[#333] group-hover:text-[#555] transition-colors duration-200">@oliver_jin_wang</p>
+                </div>
+                <p class="font-mono-sharp text-[9px] text-[#555] group-hover:text-[#e50914] transition-colors duration-200 mt-auto tracking-[0.15em] uppercase">
+                    Follow →
+                </p>
+            </a>
+
+            <!-- YouTube -->
+            <a href="https://www.youtube.com/@OliverjinWang" target="_blank" rel="noopener noreferrer"
+               class="group bg-[#0d0d0d] p-8 flex flex-col gap-6 hover:bg-[#111] transition-colors duration-200">
+                <svg class="w-6 h-6 text-[#333] group-hover:text-white transition-colors duration-200" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.81 3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.81zM9.75 15.5v-7l6.25 3.5-6.25 3.5z"/>
+                </svg>
+                <div>
+                    <p class="font-mono-sharp text-[10px] tracking-[0.25em] uppercase text-white mb-1">YouTube</p>
+                    <p class="font-mono-sharp text-[9px] text-[#333] group-hover:text-[#555] transition-colors duration-200">@OliverjinWang</p>
+                </div>
+                <p class="font-mono-sharp text-[9px] text-[#555] group-hover:text-[#e50914] transition-colors duration-200 mt-auto tracking-[0.15em] uppercase">
+                    Subscribe →
+                </p>
+            </a>
+
+            <!-- X / Twitter -->
+            <a href="https://x.com/Oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+               class="group bg-[#0d0d0d] p-8 flex flex-col gap-6 hover:bg-[#111] transition-colors duration-200">
+                <svg class="w-6 h-6 text-[#333] group-hover:text-white transition-colors duration-200" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+                <div>
+                    <p class="font-mono-sharp text-[10px] tracking-[0.25em] uppercase text-white mb-1">X / Twitter</p>
+                    <p class="font-mono-sharp text-[9px] text-[#333] group-hover:text-[#555] transition-colors duration-200">@Oliver_jin_wang</p>
+                </div>
+                <p class="font-mono-sharp text-[9px] text-[#555] group-hover:text-[#e50914] transition-colors duration-200 mt-auto tracking-[0.15em] uppercase">
+                    Follow →
+                </p>
+            </a>
+
+            <!-- Threads -->
+            <a href="https://www.threads.net/@oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+               class="group bg-[#0d0d0d] p-8 flex flex-col gap-6 hover:bg-[#111] transition-colors duration-200">
+                <svg class="w-6 h-6 text-[#333] group-hover:text-white transition-colors duration-200" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.474 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.856 1.205 8.61.024 12.186 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-.505-1.808-1.403-3.22-2.669-4.2-1.339-1.028-3.138-1.55-5.346-1.565-2.86.02-5.043.87-6.486 2.526C4.665 6.27 3.988 8.56 3.96 12c.028 3.441.706 5.731 2.033 7.107 1.443 1.657 3.624 2.504 6.484 2.526 2.011-.024 3.612-.476 4.938-1.39.909-.629 1.675-1.523 2.252-2.653l1.873.882c-.72 1.43-1.711 2.58-2.931 3.404C16.893 23.18 14.88 23.974 12.186 24zm5.833-14.24c-.107-2.328-1.6-3.72-4.234-3.87-1.79-.104-3.51.571-4.62 1.79-.992 1.1-1.449 2.645-1.356 4.59.083 1.74.686 3.087 1.791 4 1.032.852 2.47 1.28 4.28 1.28h.08c1.27-.007 2.319-.23 3.117-.663.795-.433 1.356-1.083 1.668-1.933.167-.451.255-.923.264-1.41l.01-.784zm-3.01 5.04c-.512.277-1.167.42-1.946.43-1.26-.01-2.22-.31-2.855-.892-.61-.559-.948-1.42-1.009-2.56-.076-1.444.239-2.551.932-3.287.673-.718 1.684-1.078 2.998-1.005 1.657.096 2.513.945 2.58 2.524l.002.043-.003.87c0 .15-.006.3-.016.451-.055.84-.283 1.488-.683 1.933z"/>
+                </svg>
+                <div>
+                    <p class="font-mono-sharp text-[10px] tracking-[0.25em] uppercase text-white mb-1">Threads</p>
+                    <p class="font-mono-sharp text-[9px] text-[#333] group-hover:text-[#555] transition-colors duration-200">@oliver_jin_wang</p>
+                </div>
+                <p class="font-mono-sharp text-[9px] text-[#555] group-hover:text-[#e50914] transition-colors duration-200 mt-auto tracking-[0.15em] uppercase">
+                    Join →
+                </p>
+            </a>
+
+        </div>
+    
     </div>
 </section>
 
-<!-- ── Footer / scripts ───────────────────────────────────────── -->
+<!-- ════════════════════════════════════════════════════════════
+     TESTIMONIALS — Wired to content editor
+     ════════════════════════════════════════════════════════════ -->
+<section th:if="${content['testimonial_1_name'] != null}" class="py-28 px-6 sm:px-10 lg:px-16 xl:px-24" style="background:var(--ot-bg);">
+    <div class="max-w-7xl mx-auto">
+
+        <div class="mb-16" data-reveal="slide-up">
+            <div class="w-10 h-0.5 bg-[#e50914] mb-6"></div>
+            <p class="font-mono text-[10px] tracking-[0.35em] uppercase text-[#e50914] mb-4">PEOPLE ARE TALKING</p>
+            <h2 class="font-display uppercase leading-none" style="font-size:clamp(2rem,5vw,3.5rem);letter-spacing:-0.02em;color:var(--ot-text);">
+                Real Orders.<br>Real People.
+            </h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px" style="background:var(--ot-border);">
+
+            <!-- Testimonial 1 -->
+            <div class="p-8 flex flex-col gap-6" style="background:var(--ot-surface);" data-reveal="slide-up" data-delay="0">
+                <div class="flex gap-1">
+                    <span th:each="i : ${#numbers.sequence(1,5)}" class="text-[#e50914] text-[14px]">★</span>
+                </div>
+                <p class="font-mono text-[13px] leading-relaxed flex-1" style="color:var(--ot-text);"
+                   th:text="${content['testimonial_1_text'] ?: '&quot;Quality is unreal. Got the hoodie in 8 days and the art looks exactly like the original. Nobody else is making anime clothing that feels this premium.&quot;'}">
+                    "Quality is unreal. Got the hoodie in 8 days and the art looks exactly like the original."
+                </p>
+                <div>
+                    <p class="font-mono text-[11px] font-bold" style="color:var(--ot-text);"
+                       th:text="${content['testimonial_1_name'] ?: 'Marcus T.'}">Marcus T.</p>
+                    <p class="font-mono text-[10px] mt-0.5 tracking-[0.1em]" style="color:var(--ot-text-muted);"
+                       th:text="${content['testimonial_1_source'] ?: '— Verified buyer, Shadow Hoodie'}">— Verified buyer</p>
+                </div>
+            </div>
+
+            <!-- Testimonial 2 -->
+            <div class="p-8 flex flex-col gap-6" style="background:var(--ot-surface);" data-reveal="slide-up" data-delay="100">
+                <div class="flex gap-1">
+                    <span th:each="i : ${#numbers.sequence(1,5)}" class="text-[#e50914] text-[14px]">★</span>
+                </div>
+                <p class="font-mono text-[13px] leading-relaxed flex-1" style="color:var(--ot-text);"
+                   th:text="${content['testimonial_2_text'] ?: '&quot;Oliver is one of the few artists who actually puts real thought into every design. This is not fast fashion — it&apos;s wearable art. Already on my third order.&quot;'}">
+                    "Oliver is one of the few artists who actually puts real thought into every design."
+                </p>
+                <div>
+                    <p class="font-mono text-[11px] font-bold" style="color:var(--ot-text);"
+                       th:text="${content['testimonial_2_name'] ?: 'Priya S.'}">Priya S.</p>
+                    <p class="font-mono text-[10px] mt-0.5 tracking-[0.1em]" style="color:var(--ot-text-muted);"
+                       th:text="${content['testimonial_2_source'] ?: '— Verified buyer, 3 orders'}">— Verified buyer</p>
+                </div>
+            </div>
+
+            <!-- Testimonial 3 -->
+            <div class="p-8 flex flex-col gap-6" style="background:var(--ot-surface);" data-reveal="slide-up" data-delay="200">
+                <div class="flex gap-1">
+                    <span th:each="i : ${#numbers.sequence(1,5)}" class="text-[#e50914] text-[14px]">★</span>
+                </div>
+                <p class="font-mono text-[13px] leading-relaxed flex-1" style="color:var(--ot-text);"
+                   th:text="${content['testimonial_3_text'] ?: '&quot;Saw it on TikTok, bought it same night. The piece I got is literally a limited run — they told me at checkout it&apos;s edition 12 of 50. That&apos;s crazy collectible.&quot;'}">
+                    "Saw it on TikTok, bought it same night. Edition 12 of 50."
+                </p>
+                <div>
+                    <p class="font-mono text-[11px] font-bold" style="color:var(--ot-text);"
+                       th:text="${content['testimonial_3_name'] ?: 'Jake R.'}">Jake R.</p>
+                    <p class="font-mono text-[10px] mt-0.5 tracking-[0.1em]" style="color:var(--ot-text-muted);"
+                       th:text="${content['testimonial_3_source'] ?: '— Verified buyer, TikTok to store'}">— Verified buyer</p>
+                </div>
+            </div><!-- /testimonial 3 -->
+        </div><!-- /testimonials grid -->
+    </div><!-- /testimonials container -->
+</section><!-- /testimonials section -->
+
 <div th:replace="~{fragments/layout :: footer}"></div>
 <div th:replace="~{fragments/layout :: themeScript}"></div>
-<script type="module" th:src="@{/js/cart.js}"></script>
 
 </body>
 </html>

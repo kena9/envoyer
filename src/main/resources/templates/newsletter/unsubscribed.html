@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Unsubscribed')}"></head>
+<body class="min-h-screen bg-[#0a0a0a] flex flex-col">
+
+<div th:replace="~{fragments/layout :: navbar}"></div>
+
+<main class="flex-1 flex items-center justify-center px-4 py-20">
+    <div class="w-full max-w-md text-center">
+        <p class="font-mono text-[11px] tracking-[0.3em] uppercase text-[#555] mb-4">UNSUBSCRIBED</p>
+        <h1 class="font-mono text-2xl font-bold text-white mb-4">You're off the list.</h1>
+        <p class="text-[#666] text-sm mb-8">
+            You won't receive any more drop or deal emails from us.
+            Changed your mind? You can re-subscribe anytime from the site.
+        </p>
+        <a th:href="@{/shop}"
+           class="inline-block font-mono text-[11px] tracking-[0.2em] uppercase text-white
+                  border border-[#e50914] px-8 py-3 hover:bg-[#e50914] transition-colors duration-200">
+            BACK TO SHOP
+        </a>
+    </div>
+</main>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+<div th:replace="~{fragments/layout :: themeScript}"></div>
+</body>
+</html>

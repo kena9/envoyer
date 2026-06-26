@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="en"
       xmlns:th="http://www.thymeleaf.org"
-      class="dark">
+>
 
 <head th:replace="~{fragments/layout :: head('Checkout')}"></head>
+
+<!-- Stripe.js — must load from Stripe's CDN for PCI compliance -->
+<script src="https://js.stripe.com/v3/"></script>
 
 <body class="bg-[#0a0a0a] text-white min-h-screen flex flex-col">
 
@@ -14,7 +17,7 @@
     <!-- ── Page header ──────────────────────────────────────────────────────── -->
     <div class="mb-12 border-b border-[#1a1a1a] pb-8">
         <p class="font-mono text-[10px] tracking-[0.35em] uppercase text-[#e50914] mb-3">
-            Olly Threads / Checkout
+            Akuma Threads / Checkout
         </p>
         <h1 style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
                    font-size: clamp(2.5rem, 6vw, 4.5rem);
@@ -29,6 +32,13 @@
          class="border border-[#e50914] bg-[#e50914]/10 px-6 py-4 mb-8">
         <p class="font-mono text-[11px] tracking-[0.15em] text-[#e50914]"
            th:text="${stockError}"></p>
+    </div>
+
+    <!-- ── Payment error flash ──────────────────────────────────────────────── -->
+    <div th:if="${paymentError}"
+         class="border border-[#e50914] bg-[#e50914]/10 px-6 py-4 mb-8">
+        <p class="font-mono text-[11px] tracking-[0.15em] text-[#e50914]"
+           th:text="${paymentError}"></p>
     </div>
 
     <!-- ── Two-column layout ────────────────────────────────────────────────── -->
@@ -53,7 +63,7 @@
                     </div>
                     <div class="text-right shrink-0">
                         <p class="font-mono text-[13px] font-bold text-white"
-                           th:text="'$' + ${#numbers.formatDecimal(item.unitPrice.multiply(T(java.math.BigDecimal).valueOf(item.quantity)), 1, 2)}">
+                           th:text="'$' + ${#numbers.formatDecimal(item.lineTotal(), 1, 2)}">
                             $0.00
                         </p>
                         <p class="font-mono text-[10px] text-[#444] mt-0.5"
@@ -70,37 +80,81 @@
                 <p class="font-mono text-[14px] font-bold text-white"
                    th:text="'$' + ${#numbers.formatDecimal(cart.subtotal(), 1, 2)}">$0.00</p>
             </div>
+
+            <!-- Shipping line -->
             <div class="flex items-center justify-between py-3 border-t border-[#1a1a1a] mt-3">
-                <p class="font-mono text-[10px] tracking-[0.25em] uppercase text-[#444]">SHIPPING</p>
-                <p class="font-mono text-[11px] text-[#444]">Calculated at fulfillment</p>
+                <div>
+                    <p class="font-mono text-[10px] tracking-[0.25em] uppercase text-[#444]">SHIPPING</p>
+                    <p class="font-mono text-[9px] text-[#333] mt-0.5">Cheapest rate via Printful</p>
+                </div>
+                <p id="shipping-display" class="font-mono text-[11px] text-[#555] italic">Calculated at payment</p>
+            </div>
+
+            <!-- Tax line -->
+            <div class="flex items-center justify-between py-3 border-t border-[#1a1a1a]">
+                <div>
+                    <p class="font-mono text-[10px] tracking-[0.25em] uppercase text-[#444]">TAX</p>
+                    <p class="font-mono text-[9px] text-[#333] mt-0.5">US orders only · varies by state</p>
+                </div>
+                <p id="tax-display" class="font-mono text-[11px] text-[#555] italic">Calculated at payment</p>
+            </div>
+
+            <!-- Discount line (hidden until coupon applied) -->
+            <div id="discount-row" class="hidden flex items-center justify-between py-3 border-t border-[#1a1a1a]">
+                <div>
+                    <p class="font-mono text-[10px] tracking-[0.25em] uppercase text-[#e50914]">DISCOUNT</p>
+                    <p id="coupon-code-display" class="font-mono text-[9px] text-[#333] mt-0.5"></p>
+                </div>
+                <p id="discount-display" class="font-mono text-[11px] text-[#e50914] font-bold">−$0.00</p>
             </div>
 
             <!-- ORDER TOTAL -->
             <div class="flex items-end justify-between pt-6 border-t border-[#e50914] mt-2">
-                <p style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
-                           font-size: 1.1rem;
-                           letter-spacing: 0.05em;"
-                   class="text-white uppercase">ORDER TOTAL</p>
-                <p style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+                <div>
+                    <p style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+                               font-size: 1.1rem;
+                               letter-spacing: 0.05em;"
+                       class="text-white uppercase">ORDER TOTAL</p>
+                    <p class="font-mono text-[9px] text-[#444] mt-1">Subtotal + shipping + tax</p>
+                </div>
+                <p id="total-display"
+                   style="font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
                            font-size: 2rem;
                            letter-spacing: -0.01em;
-                           color: #ffffff;"
-                   th:text="'$' + ${#numbers.formatDecimal(cart.subtotal(), 1, 2)}">$0.00</p>
+                           color: var(--ot-text);"
+                   th:text="'$' + ${#numbers.formatDecimal(cart.subtotal(), 1, 2)} + '+'">$0.00+</p>
+            </div>
+
+            <!-- Secured by Stripe badge -->
+            <div class="mt-8 pt-6 border-t border-[#1a1a1a] flex items-center gap-3">
+                <svg class="w-10 h-10 opacity-60" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="28" height="28" rx="4" fill="#635BFF"/>
+                    <path d="M13.02 10.67c0-.55.45-.77.96-.77.85 0 1.73.26 2.49.66V8.35a6.6 6.6 0 0 0-2.49-.45c-2.04 0-3.39 1.06-3.39 2.84 0 2.77 3.82 2.33 3.82 3.53 0 .66-.57.87-1.09.87-.94 0-2.01-.38-2.9-.9v2.23c.98.42 1.97.6 2.9.6 2.08 0 3.51-1.03 3.51-2.84-.01-2.99-3.81-2.46-3.81-3.56z" fill="white"/>
+                </svg>
+                <div>
+                    <p class="font-mono text-[10px] text-[#555] tracking-[0.1em]">SECURED BY STRIPE</p>
+                    <p class="font-mono text-[9px] text-[#333] mt-0.5">256-bit SSL · PCI DSS Level 1</p>
+                </div>
             </div>
         </div>
 
-        <!-- ══ RIGHT: Shipping form ════════════════════════════════════════════ -->
+        <!-- ══ RIGHT: Shipping + Payment form ════════════════════════════════════ -->
         <div class="lg:w-[55%] bg-[#0a0a0a] p-8 lg:p-10">
+
+            <!-- ── SHIPPING SECTION ── -->
             <p class="font-mono text-[10px] tracking-[0.25em] uppercase text-[#444] mb-6">
                 SHIPPING INFORMATION
             </p>
 
-            <form th:action="@{/checkout}"
+            <form id="checkout-form"
+                  th:action="@{/checkout}"
                   th:object="${form}"
                   method="post"
                   class="space-y-6">
 
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <!-- Set by JS after Stripe confirms payment -->
+                <input type="hidden" name="paymentIntentId" id="payment-intent-id"/>
 
                 <!-- ── Full Name ── -->
                 <div class="space-y-2">
@@ -200,29 +254,228 @@
                 <div class="space-y-2">
                     <label class="font-mono text-[10px] tracking-[0.2em] uppercase text-[#444]"
                            for="country">Country *</label>
-                    <input type="text" id="country" th:field="*{country}"
-                           placeholder="United States"
-                           class="w-full bg-transparent border border-[#222] text-white
-                                  font-mono text-[13px] px-4 py-3
-                                  focus:outline-none focus:border-[#e50914] transition-colors duration-200
-                                  placeholder-[#333]"/>
+                    <select id="country" th:field="*{country}" required
+                            class="w-full bg-[#0d0d0d] border border-[#222] text-white
+                                   font-mono text-[13px] px-4 py-3
+                                   focus:outline-none focus:border-[#e50914] transition-colors duration-200">
+                        <option value="" disabled>Select your country</option>
+                        <!-- ── Americas ── -->
+                        <optgroup label="Americas">
+                            <option value="US">United States</option>
+                            <option value="CA">Canada</option>
+                            <option value="MX">Mexico</option>
+                            <option value="BR">Brazil</option>
+                            <option value="AR">Argentina</option>
+                            <option value="CL">Chile</option>
+                            <option value="CO">Colombia</option>
+                            <option value="PE">Peru</option>
+                            <option value="VE">Venezuela</option>
+                            <option value="EC">Ecuador</option>
+                            <option value="BO">Bolivia</option>
+                            <option value="PY">Paraguay</option>
+                            <option value="UY">Uruguay</option>
+                            <option value="GY">Guyana</option>
+                            <option value="SR">Suriname</option>
+                            <option value="JM">Jamaica</option>
+                            <option value="TT">Trinidad and Tobago</option>
+                            <option value="BB">Barbados</option>
+                            <option value="LC">Saint Lucia</option>
+                            <option value="VC">Saint Vincent and the Grenadines</option>
+                            <option value="AG">Antigua and Barbuda</option>
+                            <option value="GD">Grenada</option>
+                            <option value="DM">Dominica</option>
+                            <option value="KN">Saint Kitts and Nevis</option>
+                            <option value="BS">Bahamas</option>
+                            <option value="HT">Haiti</option>
+                            <option value="DO">Dominican Republic</option>
+                            <option value="CU">Cuba</option>
+                            <option value="GT">Guatemala</option>
+                            <option value="BZ">Belize</option>
+                            <option value="HN">Honduras</option>
+                            <option value="SV">El Salvador</option>
+                            <option value="NI">Nicaragua</option>
+                            <option value="CR">Costa Rica</option>
+                            <option value="PA">Panama</option>
+                        </optgroup>
+                        <!-- ── Europe ── -->
+                        <optgroup label="Europe">
+                            <option value="GB">United Kingdom</option>
+                            <option value="DE">Germany</option>
+                            <option value="FR">France</option>
+                            <option value="IT">Italy</option>
+                            <option value="ES">Spain</option>
+                            <option value="NL">Netherlands</option>
+                            <option value="BE">Belgium</option>
+                            <option value="PT">Portugal</option>
+                            <option value="SE">Sweden</option>
+                            <option value="NO">Norway</option>
+                            <option value="DK">Denmark</option>
+                            <option value="FI">Finland</option>
+                            <option value="PL">Poland</option>
+                            <option value="CZ">Czech Republic</option>
+                            <option value="SK">Slovakia</option>
+                            <option value="HU">Hungary</option>
+                            <option value="AT">Austria</option>
+                            <option value="CH">Switzerland</option>
+                            <option value="IE">Ireland</option>
+                            <option value="GR">Greece</option>
+                            <option value="RO">Romania</option>
+                            <option value="BG">Bulgaria</option>
+                            <option value="HR">Croatia</option>
+                            <option value="SI">Slovenia</option>
+                            <option value="LT">Lithuania</option>
+                            <option value="LV">Latvia</option>
+                            <option value="EE">Estonia</option>
+                            <option value="LU">Luxembourg</option>
+                            <option value="MT">Malta</option>
+                            <option value="CY">Cyprus</option>
+                            <option value="IS">Iceland</option>
+                            <option value="AL">Albania</option>
+                            <option value="MK">North Macedonia</option>
+                            <option value="RS">Serbia</option>
+                            <option value="BA">Bosnia and Herzegovina</option>
+                            <option value="ME">Montenegro</option>
+                            <option value="UA">Ukraine</option>
+                            <option value="MD">Moldova</option>
+                            <option value="BY">Belarus</option>
+                        </optgroup>
+                        <!-- ── Africa ── -->
+                        <optgroup label="Africa">
+                            <option value="NG">Nigeria</option>
+                            <option value="GH">Ghana</option>
+                            <option value="ZA">South Africa</option>
+                            <option value="KE">Kenya</option>
+                            <option value="ET">Ethiopia</option>
+                            <option value="TZ">Tanzania</option>
+                            <option value="UG">Uganda</option>
+                            <option value="SN">Senegal</option>
+                            <option value="CI">Côte d'Ivoire</option>
+                            <option value="CM">Cameroon</option>
+                            <option value="EG">Egypt</option>
+                            <option value="MA">Morocco</option>
+                            <option value="DZ">Algeria</option>
+                            <option value="TN">Tunisia</option>
+                            <option value="LY">Libya</option>
+                            <option value="SD">Sudan</option>
+                            <option value="AO">Angola</option>
+                            <option value="MZ">Mozambique</option>
+                            <option value="ZM">Zambia</option>
+                            <option value="ZW">Zimbabwe</option>
+                            <option value="RW">Rwanda</option>
+                            <option value="MW">Malawi</option>
+                            <option value="BW">Botswana</option>
+                            <option value="NA">Namibia</option>
+                            <option value="MU">Mauritius</option>
+                        </optgroup>
+                        <!-- ── Asia & Middle East ── -->
+                        <optgroup label="Asia &amp; Middle East">
+                            <option value="JP">Japan</option>
+                            <option value="CN">China</option>
+                            <option value="KR">South Korea</option>
+                            <option value="IN">India</option>
+                            <option value="ID">Indonesia</option>
+                            <option value="MY">Malaysia</option>
+                            <option value="SG">Singapore</option>
+                            <option value="TH">Thailand</option>
+                            <option value="PH">Philippines</option>
+                            <option value="VN">Vietnam</option>
+                            <option value="BD">Bangladesh</option>
+                            <option value="PK">Pakistan</option>
+                            <option value="LK">Sri Lanka</option>
+                            <option value="NP">Nepal</option>
+                            <option value="MM">Myanmar</option>
+                            <option value="KH">Cambodia</option>
+                            <option value="LA">Laos</option>
+                            <option value="TW">Taiwan</option>
+                            <option value="HK">Hong Kong</option>
+                            <option value="AE">United Arab Emirates</option>
+                            <option value="SA">Saudi Arabia</option>
+                            <option value="QA">Qatar</option>
+                            <option value="KW">Kuwait</option>
+                            <option value="BH">Bahrain</option>
+                            <option value="OM">Oman</option>
+                            <option value="JO">Jordan</option>
+                            <option value="LB">Lebanon</option>
+                            <option value="IL">Israel</option>
+                            <option value="TR">Turkey</option>
+                            <option value="IR">Iran</option>
+                            <option value="IQ">Iraq</option>
+                        </optgroup>
+                        <!-- ── Oceania ── -->
+                        <optgroup label="Oceania">
+                            <option value="AU">Australia</option>
+                            <option value="NZ">New Zealand</option>
+                            <option value="FJ">Fiji</option>
+                            <option value="PG">Papua New Guinea</option>
+                        </optgroup>
+                    </select>
                     <p th:if="${#fields.hasErrors('country')}" th:errors="*{country}"
                        class="font-mono text-[10px] text-[#e50914]"></p>
                 </div>
 
+                <!-- ── Coupon Code ── -->
+                <div class="pt-2">
+                    <label class="font-mono text-[10px] tracking-[0.2em] uppercase text-[#444]"
+                           for="couponCode">Discount Code <span class="text-[#333]">(optional)</span></label>
+                    <div class="flex gap-3 mt-2">
+                        <input type="text" id="couponCode" th:field="*{couponCode}"
+                               placeholder="e.g. WELCOME10"
+                               autocomplete="off"
+                               class="flex-1 bg-transparent border border-[#222] text-white
+                                      font-mono text-[13px] px-4 py-3 uppercase tracking-[0.1em]
+                                      focus:outline-none focus:border-[#e50914] transition-colors duration-200
+                                      placeholder-[#333] placeholder-normal-case"/>
+                        <button type="button" id="apply-coupon-btn"
+                                class="font-mono text-[10px] tracking-[0.2em] uppercase
+                                       border border-[#333] text-[#555] px-5 py-3 shrink-0
+                                       hover:border-white hover:text-white transition-colors duration-200">
+                            APPLY
+                        </button>
+                    </div>
+                    <p id="coupon-feedback" class="font-mono text-[10px] mt-2 hidden"></p>
+                </div>
+
+                <!-- ── PAYMENT SECTION ── -->
+                <div class="pt-6 border-t border-[#1a1a1a]">
+                    <p class="font-mono text-[10px] tracking-[0.25em] uppercase text-[#444] mb-6">
+                        PAYMENT DETAILS
+                    </p>
+
+                    <!-- Stripe Card Element mounts here -->
+                    <div id="card-element"
+                         class="w-full border border-[#222] px-4 py-3 bg-transparent
+                                focus-within:border-[#e50914] transition-colors duration-200"
+                         style="min-height: 44px;">
+                        <!-- Stripe injects its iframe here -->
+                    </div>
+
+                    <!-- Card validation errors from Stripe -->
+                    <p id="card-errors" class="font-mono text-[10px] text-[#e50914] mt-2 hidden"></p>
+                </div>
+
                 <!-- ── Submit ── -->
-                <div class="pt-4 border-t border-[#1a1a1a]">
-                    <button type="submit"
+                <div class="pt-4">
+                    <button type="submit" id="pay-btn"
                             class="w-full font-mono text-[11px] tracking-[0.25em] uppercase font-bold
                                    bg-[#e50914] text-white px-8 py-4
-                                   hover:bg-[#b8070f] transition-colors duration-200">
-                        PLACE ORDER
+                                   hover:bg-[#b8070f] transition-colors duration-200
+                                   disabled:opacity-50 disabled:cursor-not-allowed">
+                        PAY &amp; PLACE ORDER
                     </button>
+
+                    <!-- Processing spinner (hidden by default) -->
+                    <div id="pay-spinner" class="hidden text-center mt-4">
+                        <p class="font-mono text-[10px] tracking-[0.2em] text-[#555] uppercase">
+                            Processing payment&#8230;
+                        </p>
+                    </div>
+
                     <p class="font-mono text-[9px] text-[#333] tracking-[0.15em] uppercase text-center mt-4">
                         By placing an order you agree to our
                         <a th:href="@{/terms-of-service}" class="text-[#444] hover:text-white">Terms of Service</a>
                     </p>
                 </div>
+
             </form>
         </div>
     </div>
@@ -231,6 +484,197 @@
 
 <div th:replace="~{fragments/layout :: footer}"></div>
 <div th:replace="~{fragments/layout :: themeScript}"></div>
+
+<!-- ── Stripe Payment JS ──────────────────────────────────────────────────── -->
+<script th:inline="javascript">
+/*<![CDATA[*/
+(function() {
+    var STRIPE_KEY = /*[[${stripePublishableKey}]]*/ 'pk_test_placeholder';
+
+    var stripe   = Stripe(STRIPE_KEY);
+    var elements = stripe.elements();
+
+    // Mount Stripe Card Element with dark theme to match the site
+    var cardElement = elements.create('card', {
+        style: {
+            base: {
+                color: '#ffffff',
+                fontFamily: 'monospace, Courier New, monospace',
+                fontSize:   '13px',
+                '::placeholder': { color: '#333333' },
+                iconColor: '#555555'
+            },
+            invalid: {
+                color: '#e50914',
+                iconColor: '#e50914'
+            }
+        }
+    });
+    cardElement.mount('#card-element');
+
+    // Show real-time card validation errors
+    cardElement.on('change', function(event) {
+        var errEl = document.getElementById('card-errors');
+        if (event.error) {
+            errEl.textContent = event.error.message;
+            errEl.classList.remove('hidden');
+        } else {
+            errEl.textContent = '';
+            errEl.classList.add('hidden');
+        }
+    });
+
+    // Read the CSRF token from the Spring Security cookie
+    function getCsrf() {
+        var match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    var form    = document.getElementById('checkout-form');
+    var payBtn  = document.getElementById('pay-btn');
+    var spinner = document.getElementById('pay-spinner');
+
+    function setLoading(loading) {
+        payBtn.disabled = loading;
+        payBtn.textContent = loading ? 'PROCESSING...' : 'PAY & PLACE ORDER';
+        spinner.classList.toggle('hidden', !loading);
+    }
+
+    function showError(msg) {
+        var errEl = document.getElementById('card-errors');
+        errEl.textContent = msg;
+        errEl.classList.remove('hidden');
+        setLoading(false);
+    }
+
+    function fmtMoney(n) {
+        return '$' + parseFloat(n).toFixed(2);
+    }
+
+    // "Apply" button — validates code via AJAX before payment
+    var applyBtn = document.getElementById('apply-coupon-btn');
+    if (applyBtn) {
+        applyBtn.addEventListener('click', async function() {
+            var code = (document.getElementById('couponCode').value || '').trim().toUpperCase();
+            var fb   = document.getElementById('coupon-feedback');
+            if (!code) { fb.classList.add('hidden'); return; }
+
+            applyBtn.textContent = '...';
+            applyBtn.disabled = true;
+            try {
+                var params = new URLSearchParams({ code });
+                var res = await fetch('/api/discount/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-XSRF-TOKEN': getCsrf() },
+                    body: params.toString()
+                });
+                var data = await res.json();
+                if (data.valid) {
+                    var label = data.type === 'PERCENT'
+                        ? data.value + '% off'
+                        : '$' + parseFloat(data.value).toFixed(2) + ' off';
+                    fb.textContent = '✓ Code applied — ' + label + ' (saves $' + parseFloat(data.savings).toFixed(2) + ')';
+                    fb.className   = 'font-mono text-[10px] mt-2 text-green-400';
+                    window._validatedCode = data.code; // store for display after payment-intent
+                } else {
+                    fb.textContent = '✗ ' + data.error;
+                    fb.className   = 'font-mono text-[10px] mt-2 text-[#e50914]';
+                    window._validatedCode = null;
+                }
+            } catch(e) {
+                fb.textContent = '✗ Could not validate code. Try again.';
+                fb.className   = 'font-mono text-[10px] mt-2 text-[#e50914]';
+            }
+            fb.classList.remove('hidden');
+            applyBtn.textContent = 'APPLY';
+            applyBtn.disabled = false;
+        });
+    }
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        setLoading(true);
+
+        // Collect form values for the payment-intent endpoint
+        var couponEl = document.getElementById('couponCode');
+        var params = new URLSearchParams({
+            email:      document.getElementById('email').value,
+            fullName:   document.getElementById('fullName').value,
+            address:    document.getElementById('address').value,
+            address2:   (document.getElementById('address2').value || ''),
+            city:       document.getElementById('city').value,
+            state:      document.getElementById('state').value,
+            zip:        document.getElementById('zip').value,
+            country:    document.getElementById('country').value,
+            couponCode: (couponEl ? couponEl.value.trim() : '')
+        });
+
+        // Step 1: Create PaymentIntent on the server (calculates real total)
+        fetch('/checkout/payment-intent', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-XSRF-TOKEN': getCsrf()
+            },
+            body: params.toString()
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(pi) {
+            if (pi.error) {
+                showError(pi.error);
+                return;
+            }
+
+            // Update the displayed totals with calculated values
+            document.getElementById('shipping-display').textContent = fmtMoney(pi.shipping);
+            document.getElementById('tax-display').textContent      = fmtMoney(pi.tax);
+            document.getElementById('total-display').textContent    = fmtMoney(pi.total);
+
+            // Show discount row if coupon was valid
+            if (pi.couponValid && parseFloat(pi.discount) > 0) {
+                document.getElementById('discount-row').classList.remove('hidden');
+                document.getElementById('discount-display').textContent = '−' + fmtMoney(pi.discount);
+                var appliedCode = window._validatedCode || document.getElementById('couponCode').value.trim().toUpperCase();
+                document.getElementById('coupon-code-display').textContent = 'Code: ' + appliedCode;
+            }
+
+            // Step 2: Confirm card payment with Stripe (card data never touches our server)
+            stripe.confirmCardPayment(pi.clientSecret, {
+                payment_method: {
+                    card: cardElement,
+                    billing_details: {
+                        name:  document.getElementById('fullName').value,
+                        email: document.getElementById('email').value,
+                        address: {
+                            line1:       document.getElementById('address').value,
+                            line2:       (document.getElementById('address2').value || ''),
+                            city:        document.getElementById('city').value,
+                            state:       document.getElementById('state').value,
+                            postal_code: document.getElementById('zip').value,
+                            country:     document.getElementById('country').value
+                        }
+                    }
+                }
+            })
+            .then(function(result) {
+                if (result.error) {
+                    showError(result.error.message);
+                } else if (result.paymentIntent.status === 'succeeded') {
+                    // Step 3: Submit the hidden form to finalise the order server-side
+                    document.getElementById('payment-intent-id').value = result.paymentIntent.id;
+                    form.submit();
+                } else {
+                    showError('Payment incomplete. Please try again.');
+                }
+            });
+        })
+        .catch(function(err) {
+            showError('Something went wrong. Please try again.');
+        });
+    });
+})();
+/*]]>*/
+</script>
 
 </body>
 </html>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"
       xmlns:th="http://www.thymeleaf.org"
-      class="dark">
+>
 
 <head th:replace="~{fragments/layout :: head('My Orders')}"></head>
 
@@ -112,20 +112,20 @@
             <!-- Order items preview (collapsed summary) -->
             <div class="px-6 py-5">
                 <div th:each="item, iterStat : ${order.items}"
-                     th:if="${iterStat.index < 3}"
+                     th:if="${iterStat.index lt 3}"
                      class="flex items-center justify-between py-2
                             border-b border-[#111] last:border-0">
                     <div class="flex items-center gap-3">
                         <p class="font-mono text-[11px] text-white uppercase tracking-[0.05em]"
                            th:text="${item.variant.product.name}">Product</p>
                         <span class="font-mono text-[9px] text-[#333] tracking-[0.2em] uppercase border border-[#1a1a1a] px-2 py-0.5"
-                              th:text="${item.variant.size.name()}">M</span>
+                              th:text="${(item.variant != null and item.variant.size != null) ? item.variant.size.name() : '—'}">M</span>
                         <span class="font-mono text-[9px] text-[#333] tracking-[0.15em]">
                             × <span th:text="${item.quantity}">1</span>
                         </span>
                     </div>
                     <p class="font-mono text-[11px] text-[#555]"
-                       th:text="'$' + ${#numbers.formatDecimal(item.unitPrice.multiply(T(java.math.BigDecimal).valueOf(item.quantity)), 1, 2)}">
+                       th:text="'$' + ${#numbers.formatDecimal(item.lineTotal(), 1, 2)}">
                         $0.00
                     </p>
                 </div>

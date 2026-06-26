@@ -28,6 +28,61 @@
          th:text="${successMsg}">
     </div>
 
+    <!-- ── Quick links ──────────────────────────────────────────────────────── -->
+    <div class="mb-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px bg-[#1a1a1a]">
+        <a th:href="@{/admin/product/new}"
+           class="bg-[#0a0a0a] p-5 hover:bg-[#0d0d0d] transition-colors duration-200 flex flex-col gap-2">
+            <span class="font-mono text-[9px] tracking-[0.3em] uppercase text-[#e50914]">01</span>
+            <span class="font-mono text-[11px] font-bold text-white">New Product</span>
+            <span class="font-mono text-[9px] text-[#444]">Upload a design manually</span>
+        </a>
+        <a th:href="@{/admin/printful}"
+           class="bg-[#0a0a0a] p-5 hover:bg-[#0d0d0d] transition-colors duration-200 flex flex-col gap-2">
+            <span class="font-mono text-[9px] tracking-[0.3em] uppercase text-[#e50914]">02</span>
+            <span class="font-mono text-[11px] font-bold text-white">Printful Center</span>
+            <span class="font-mono text-[9px] text-[#444]">Import &amp; sync products</span>
+        </a>
+        <a th:href="@{/admin/dashboard}"
+           class="bg-[#0a0a0a] p-5 hover:bg-[#0d0d0d] transition-colors duration-200 flex flex-col gap-2">
+            <span class="font-mono text-[9px] tracking-[0.3em] uppercase text-[#e50914]">03</span>
+            <span class="font-mono text-[11px] font-bold text-white">Orders</span>
+            <span class="font-mono text-[9px] text-[#444]">View &amp; manage all orders</span>
+        </a>
+        <a th:href="@{/admin/notifications}"
+           class="bg-[#0a0a0a] p-5 hover:bg-[#0d0d0d] transition-colors duration-200 flex flex-col gap-2">
+            <span class="font-mono text-[9px] tracking-[0.3em] uppercase text-[#e50914]">04</span>
+            <span class="font-mono text-[11px] font-bold text-white">Notifications</span>
+            <span class="font-mono text-[9px] text-[#444]">Email &amp; push announcements</span>
+        </a>
+        <a th:href="@{/admin/content}"
+           class="bg-[#0a0a0a] p-5 hover:bg-[#0d0d0d] transition-colors duration-200 flex flex-col gap-2">
+            <span class="font-mono text-[9px] tracking-[0.3em] uppercase text-[#e50914]">05</span>
+            <span class="font-mono text-[11px] font-bold text-white">Content Editor</span>
+            <span class="font-mono text-[9px] text-[#444]">Edit any text on the site</span>
+        </a>
+        <a th:href="@{/admin/discounts}"
+           class="bg-[#0a0a0a] p-5 hover:bg-[#0d0d0d] transition-colors duration-200 flex flex-col gap-2">
+            <span class="font-mono text-[9px] tracking-[0.3em] uppercase text-[#e50914]">06</span>
+            <span class="font-mono text-[11px] font-bold text-white">Discount Codes</span>
+            <span class="font-mono text-[9px] text-[#444]">Create &amp; manage promo codes</span>
+        </a>
+    </div>
+
+    <!-- ── Stripe Dashboard link ──────────────────────────────────────────────── -->
+    <div class="mb-12 border border-[#1a1a1a] p-6 flex items-center justify-between gap-6">
+        <div>
+            <p class="font-mono text-[10px] tracking-[0.25em] uppercase text-[#444] mb-1">STRIPE DASHBOARD</p>
+            <p class="font-mono text-[12px] font-bold text-white">Payments, Balance &amp; Payouts</p>
+            <p class="font-mono text-[9px] text-[#333] mt-1">View revenue, track individual payments, and manage bank payouts</p>
+        </div>
+        <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer"
+           class="shrink-0 font-mono text-[11px] tracking-[0.2em] uppercase font-bold
+                  bg-[#635BFF] text-white px-6 py-3
+                  hover:bg-[#5147e6] transition-colors duration-200 inline-block whitespace-nowrap">
+            OPEN STRIPE ↗
+        </a>
+    </div>
+
     <!-- ── Upload new design CTA ─────────────────────────────────────────────── -->
     <div class="mb-12 flex items-center justify-between">
         <h2 class="font-mono text-[11px] tracking-[0.3em] uppercase text-[#555]">Active Drops</h2>
@@ -174,8 +229,9 @@
                         </td>
                     </tr>
 
-                    <tr th:each="order, stat : ${orders}"
-                        th:if="${stat.index < 20}"
+
+                    <!-- Order rows -->
+                    <tr th:each="order : ${orders}"
                         class="border-b border-[#111] hover:bg-[#111] transition-colors duration-150">
 
                         <td class="py-3 pr-6">
@@ -194,15 +250,15 @@
                             <span class="font-mono text-[9px] tracking-[0.15em] uppercase px-2 py-0.5 border"
                                   th:text="${order.status}"
                                   th:classappend="${order.status.name() == 'PENDING'}    ? 'text-yellow-400 border-yellow-400/30' :
-                                                  (${order.status.name() == 'SHIPPED'}  ? 'text-blue-400 border-blue-400/30' :
-                                                  (${order.status.name() == 'DELIVERED'}? 'text-green-400 border-green-400/30' :
-                                                  (${order.status.name() == 'CANCELLED'}? 'text-[#e50914] border-[#e50914]/30' :
-                                                                                          'text-[#555] border-[#222]')))">
-                            </span>
+                                                  (${order.status.name() == 'PAID'}     ? 'text-green-400  border-green-400/30'  :
+                                                  (${order.status.name() == 'SHIPPED'}  ? 'text-blue-400   border-blue-400/30'   :
+                                                  (${order.status.name() == 'DELIVERED'}? 'text-white      border-white/20'      :
+                                                                                           'text-[#555]     border-[#222]'))))"
+                                  >PENDING</span>
                         </td>
                         <td class="py-3">
-                            <span class="font-mono text-[10px] text-[#444]"
-                                  th:text="${#temporals.format(order.createdAt, 'MMM d, yyyy')}"></span>
+                            <span class="font-mono text-[10px] text-[#555]"
+                                  th:text="${#temporals.format(order.createdDate, 'MMM d, yyyy')}">Jan 1, 2025</span>
                         </td>
                     </tr>
                 </tbody>
@@ -212,8 +268,8 @@
 
 </main>
 
-<footer th:replace="~{fragments/layout :: footer}"></footer>
-<script th:replace="~{fragments/layout :: themeScript}"></script>
+<div th:replace="~{fragments/layout :: footer}"></div>
+<div th:replace="~{fragments/layout :: themeScript}"></div>
 
 </body>
 </html>

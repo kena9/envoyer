@@ -12,11 +12,33 @@
 <head th:fragment="head(title)">
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <!-- CSP is enforced by Spring Security SecurityConfig — this meta tag is a belt-and-suspenders hint for browsers that read it before the HTTP header. -->
-    <meta http-equiv="Content-Security-Policy"
-          content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'; form-action 'self'"/>
+    <!-- CSP is enforced via HTTP header in SecurityConfig.java — do not add a meta-tag CSP here.
+         Browsers enforce both policies simultaneously, which would block Stripe. -->
 
     <title th:text="${title} + ' — Olly Threads'">Olly Threads</title>
+
+    <!-- ── SEO & Social sharing meta tags ──────────────────────────────────── -->
+    <!-- These appear when links are shared on TikTok, Instagram, Twitter, iMessage etc. -->
+    <meta name="description"
+          th:content="${ogDescription ?: 'Original anime art on premium clothing. Designed by @oliver_jin_wang — printed on demand, no restocks.'}"/>
+
+    <!-- Open Graph (Facebook, Instagram, Discord, Slack, iMessage) -->
+    <meta property="og:type"        content="website"/>
+    <meta property="og:site_name"   content="Olly Threads"/>
+    <meta property="og:title"       th:content="${title} + ' — Olly Threads'"/>
+    <meta property="og:description" th:content="${ogDescription ?: 'Original anime art on premium clothing. Designed by @oliver_jin_wang — printed on demand, no restocks.'}"/>
+    <meta property="og:image"        th:content="${ogImage ?: baseUrl + '/og-image.png?title=' + #strings.replace(title ?: 'Olly Threads', ' ', '+')}"/>
+    <meta property="og:image:width"  content="1200"/>
+    <meta property="og:image:height" content="630"/>
+    <meta property="og:url"          th:content="${canonicalUrl}"/>
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card"        content="summary_large_image"/>
+    <meta name="twitter:site"        content="@Oliver_jin_wang"/>
+    <meta name="twitter:creator"     content="@Oliver_jin_wang"/>
+    <meta name="twitter:title"       th:content="${title} + ' — Olly Threads'"/>
+    <meta name="twitter:description" th:content="${ogDescription ?: 'Original anime art on premium clothing. Designed by @oliver_jin_wang — printed on demand, no restocks.'}"/>
+    <meta name="twitter:image"       th:content="${ogImage ?: baseUrl + '/og-image.png?title=' + #strings.replace(title ?: 'Olly Threads', ' ', '+')}"/>
 
     <!-- Signature font — Pinyon Script for the brand wordmark -->
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -42,15 +64,283 @@
         }
     </script>
 
-    <!-- Theme init — before first paint to prevent flash -->
+    <!-- ── CSS custom properties — the single source of truth for every color ── -->
+    <!-- Light values on :root; .dark overrides them. All page colours reference vars. -->
+    <style>
+        /* ── LIGHT MODE (default) ───────────────────────────────────────────
+           All ratios vs #f8f8f8 background verified against WCAG 2.1 AA (4.5:1)
+           --ot-text        #0a0a0a  → 18.6:1  ✓ AAA  (headlines, body)
+           --ot-text-muted  #555555  →  7.0:1  ✓ AAA  (section labels)
+           --ot-text-dim    #666666  →  5.4:1  ✓ AA   (sublabels, descriptions)
+           --ot-text-ghost  #bbbbbb  →  2.1:1  decorative only (watermarks)   */
+        :root {
+            --ot-bg:           #f8f8f8;
+            --ot-surface:      #ffffff;
+            --ot-surface-2:    #f2f2f2;
+            --ot-border:       #e8e8e8;
+            --ot-border-2:     #d0d0d0;
+            --ot-text:         #0a0a0a;
+            --ot-text-muted:   #555555;
+            --ot-text-dim:     #666666;
+            --ot-text-ghost:   #bbbbbb;
+            --ot-accent:       #e50914;
+            --ot-accent-dark:  #b8070f;
+            --ot-overlay:      rgba(248,248,248,0.94);
+        }
+
+        /* ── DARK MODE ──────────────────────────────────────────────────────
+           All ratios vs #0a0a0a background
+           --ot-text        #ffffff  → 19.8:1  ✓ AAA  (headlines, body)
+           --ot-text-muted  #888888  →  6.1:1  ✓ AA   (section labels — was #444 at 2.0:1 ✗)
+           --ot-text-dim    #555555  →  2.7:1  intentionally dim (decorative sublabels)
+           --ot-text-ghost  #2a2a2a  →  1.4:1  watermark / ghost text only              */
+        .dark {
+            --ot-bg:           #0a0a0a;
+            --ot-surface:      #0d0d0d;
+            --ot-surface-2:    #111111;
+            --ot-border:       #1a1a1a;
+            --ot-border-2:     #2a2a2a;
+            --ot-text:         #ffffff;
+            --ot-text-muted:   #888888;
+            --ot-text-dim:     #555555;
+            --ot-text-ghost:   #2a2a2a;
+            --ot-accent:       #e50914;
+            --ot-accent-dark:  #b8070f;
+            --ot-overlay:      rgba(10,10,10,0.92);
+        }
+
+        /* ── Global structural overrides ─────────────────────────────────────
+           Tailwind CDN arbitrary-value classes have [0,1,0] specificity.
+           These rules target structural elements with the same or higher
+           specificity so they win in both modes without touching each template. */
+
+        html, body {
+            background-color: var(--ot-bg)      !important;
+            color:            var(--ot-text)     !important;
+        }
+        /* Only transition colours when JS enables it (after first paint, and NOT during tab switch) */
+        html.theme-transitions, html.theme-transitions body {
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        /* Nav */
+        #main-navbar {
+            background-color: var(--ot-bg)      !important;
+            border-color:     var(--ot-border)   !important;
+        }
+
+        /* All section / div backgrounds that use dark hex */
+        section, main, footer,
+        .bg-\[\#0a0a0a\], .bg-\[\#0d0d0d\], .bg-\[\#111\], .bg-\[\#111111\],
+        .bg-\[\#0a0a0a\]\/10 {
+            background-color: var(--ot-bg)      !important;
+        }
+        .bg-\[\#1a1a1a\]  { background-color: var(--ot-border)   !important; }
+        .bg-\[\#222\]     { background-color: var(--ot-border-2) !important; }
+
+        /* Borders */
+        .border-\[\#1a1a1a\] { border-color: var(--ot-border)   !important; }
+        .border-\[\#222\]    { border-color: var(--ot-border-2)  !important; }
+        .border-\[\#333\]    { border-color: var(--ot-border-2)  !important; }
+        .border-\[\#2a2a2a\] { border-color: var(--ot-border-2)  !important; }
+        .divide-\[\#1a1a1a\] > * + * { border-color: var(--ot-border) !important; }
+
+        /* Text colours */
+        .text-white           { color: var(--ot-text)       !important; }
+        .text-\[\#444\],
+        .text-\[\#444444\]    { color: var(--ot-text-muted) !important; }
+        .text-\[\#333\],
+        .text-\[\#333333\]    { color: var(--ot-text-dim)   !important; }
+        .text-\[\#555\],
+        .text-\[\#555555\]    { color: var(--ot-text-muted) !important; }
+        .text-\[\#2a2a2a\]    { color: var(--ot-text-dim)   !important; }
+        .text-\[\#1e1e1e\]    { color: var(--ot-text-ghost) !important; }
+        .text-\[\#3a3a3a\]    { color: var(--ot-text-dim)   !important; }
+        .text-\[\#aaa\],
+        .text-\[\#888\]       { color: var(--ot-text-muted) !important; }
+
+        /* Inputs / selects */
+        input, select, textarea {
+            background-color: var(--ot-surface)   !important;
+            color:            var(--ot-text)       !important;
+            border-color:     var(--ot-border)     !important;
+        }
+        input::placeholder { color: var(--ot-text-ghost) !important; }
+
+        /* Cards & elevated surfaces */
+        article, .product-card {
+            background-color: var(--ot-surface) !important;
+        }
+
+        /* Admin panels, modals, popups */
+        .bg-\[\#111\],
+        .bg-\[\#0d0d0d\] {
+            background-color: var(--ot-surface) !important;
+        }
+
+        /* Gap lines (bg used as divider) */
+        .bg-\[\#1a1a1a\] {
+            background-color: var(--ot-border) !important;
+        }
+
+        /* Light-mode specific: darken red button text stays white */
+        .bg-\[\#e50914\] { background-color: var(--ot-accent) !important; }
+
+        /* Newsletter popup */
+        #nl-popup {
+            background-color: var(--ot-surface)  !important;
+            border-color:     var(--ot-border-2)  !important;
+        }
+
+        /* Scroll bar */
+        /* ── Scroll-reveal system ─────────────────────────────────── */
+        [data-reveal] {
+            opacity: 0;
+        }
+        [data-reveal='slide-up']    { transform: translateY(36px); }
+        [data-reveal='slide-right'] { transform: translateX(-36px); }
+        [data-reveal='fade']        { transform: none; }
+        /* When observer fires, transition FROM hidden state → visible */
+        [data-reveal].revealed {
+            opacity: 1 !important;
+            transform: none !important;
+            transition: opacity 0.75s ease, transform 0.75s cubic-bezier(0.16,1,0.3,1);
+        }
+        /* Stagger siblings with data-reveal-delay already set inline; also support data-delay */
+
+        /* Product card hover — quick-view button overlay */
+        .card-quick-view {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: rgba(229,9,20,0.92);
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            text-align: center;
+            padding: 10px 0;
+            transform: translateY(100%);
+            transition: transform 0.25s ease;
+            pointer-events: none;
+        }
+        .product-card:hover .card-quick-view { transform: translateY(0); }
+
+        /* Marquee (already has @keyframes ticker; this is the outer clip) */
+        .ticker-outer { overflow: hidden; }
+
+        ::-webkit-scrollbar            { width: 6px; }
+        ::-webkit-scrollbar-track      { background: var(--ot-bg); }
+        ::-webkit-scrollbar-thumb      { background: var(--ot-border-2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover{ background: var(--ot-text-muted); }
+
+        /* Smooth icon transition in toggle button */
+        #theme-toggle svg { transition: opacity 0.2s ease; }
+        /* Show sun (click → go light) when in dark mode; moon when in light mode */
+        html.dark     #icon-sun  { display: block !important; }
+        html.dark     #icon-moon { display: none  !important; }
+        html:not(.dark) #icon-sun  { display: none  !important; }
+        html:not(.dark) #icon-moon { display: block !important; }
+
+        /* ── Light-mode exclusive refinements ─────────────────────────────── */
+
+        /* Static white text → near-black in light */
+        html:not(.dark) .text-white                  { color: #0a0a0a !important; }
+        /* Hover-to-white utilities → adapt to readable dark in light mode */
+        html:not(.dark) .hover\:text-white:hover     { color: var(--ot-text) !important; }
+        /* group-hover variants */
+        html:not(.dark) .group:hover .group-hover\:text-white { color: var(--ot-text) !important; }
+
+        /* bg-black (hardcoded, not mapped by bg-[#0a0a0a]) → surface in light */
+        html:not(.dark) .bg-black  { background-color: var(--ot-surface) !important; }
+        /* bg-black buttons that also carry text-white need readable text */
+        html:not(.dark) .bg-black .text-white,
+        html:not(.dark) .bg-black.text-white { color: var(--ot-bg) !important; }
+
+        /* from-black/80 gradient overlay (e.g. product card hover) — lighten in light mode */
+        html:not(.dark) .from-black\/80  { --tw-gradient-from: rgba(255,255,255,0.5) !important; }
+        html:not(.dark) .from-black\/90  { --tw-gradient-from: rgba(255,255,255,0.7) !important; }
+
+        /* Accent line keeps contrast on light bg */
+        html:not(.dark) #main-navbar { box-shadow: 0 1px 0 var(--ot-border); }
+
+        /* Brand wordmark stays legible on both backgrounds */
+        html:not(.dark) [style*="Pinyon Script"] { color: #cccccc !important; }
+
+        /* Ghost/watermark text (massive background letters) — static */
+        html:not(.dark) .text-white\/\[0\.018\],
+        html:not(.dark) .text-white\/\[0\.035\],
+        html:not(.dark) .text-white\/\[0\.06\]  { color: rgba(0,0,0,0.05) !important; }
+        /* Ghost text on group-hover (Range section bleed-off letters) */
+        html:not(.dark) .group:hover .group-hover\:text-white\/\[0\.06\] { color: rgba(0,0,0,0.07) !important; }
+
+        /* Stripe badge — keep contrast */
+        html:not(.dark) #card-element {
+            background-color: var(--ot-surface) !important;
+        }
+
+        /* Details/accordion summary arrows and labels */
+        html:not(.dark) details summary { color: var(--ot-text-muted) !important; }
+        html:not(.dark) details summary:hover { color: var(--ot-text) !important; }
+
+        /* Product cards & page sections that use bg-[#0a0a0a] as explicit bg */
+        html:not(.dark) .bg-\[\#0a0a0a\] { background-color: var(--ot-surface) !important; }
+
+        /* Countdown / filter borders using border-[#222] stay visible in light mode */
+        html:not(.dark) .border-\[\#222\] { border-color: var(--ot-border) !important; }
+
+        /* Dropdown option backgrounds */
+        html:not(.dark) .bg-\[\#111\] { background-color: var(--ot-bg) !important; }
+    </style>
+
+    <!-- ── Theme init — runs before first paint to prevent any flash ─────────
+         FIX: explicitly set OR REMOVE the dark class so page-level class="dark"
+         doesn't persist when the user has switched to light mode.           -->
     <script>
         (function () {
-            var saved = localStorage.getItem('olly-theme');
-            var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (saved === 'dark' || (!saved && prefersDark)) {
-                document.documentElement.classList.add('dark');
+            var saved        = localStorage.getItem('olly-theme');
+            var prefersDark  = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            var html         = document.documentElement;
+
+            if (saved === 'light') {
+                // User explicitly chose light — remove the hardcoded dark class
+                html.classList.remove('dark');
+            } else if (saved === 'dark' || (!saved && prefersDark)) {
+                // User chose dark, or no preference and OS is dark
+                html.classList.add('dark');
+            } else {
+                // No saved pref and OS is light → keep dark as the brand default
+                // (this is an anime/artist brand — dark is the identity)
+                html.classList.add('dark');
             }
         })();
+
+        // Enable colour transitions only AFTER first paint (prevents initial flash)
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                document.documentElement.classList.add('theme-transitions');
+            });
+        });
+
+        // Suppress transitions during tab switch (kills the black-screen bug)
+        document.addEventListener('visibilitychange', function() {
+            var html = document.documentElement;
+            html.classList.remove('theme-transitions');
+            if (document.visibilityState === 'visible') {
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        html.classList.add('theme-transitions');
+                    });
+                });
+            }
+        });
+
+        // Theme toggle — called by the navbar sun/moon button on every page
+        function toggleDark() {
+            var html = document.documentElement;
+            var nowDark = html.classList.toggle('dark');
+            localStorage.setItem('olly-theme', nowDark ? 'dark' : 'light');
+        }
     </script>
 
     <!-- CSRF meta tags for JS fetch calls -->
@@ -61,6 +351,15 @@
 
     <!-- Cart badge initialises on every page load and exposes addToCart / removeFromCart globally -->
     <script type="module" th:src="@{/js/cart.js}"></script>
+
+    <!-- Canonical URL — prevents duplicate-content penalties on filtered/paginated URLs -->
+    <link rel="canonical" th:href="${canonicalUrl}"/>
+
+    <!-- Favicon / PWA -->
+    <link rel="icon"             type="image/png" href="/img/icon-192.png"/>
+    <link rel="apple-touch-icon"                  href="/img/icon-192.png"/>
+    <link rel="manifest"                          href="/manifest.webmanifest"/>
+    <meta name="theme-color" content="#0a0a0a"/>
 </head>
 
 <!--
@@ -69,102 +368,256 @@
   Usage: <div th:replace="~{fragments/layout :: navbar}"></div>
   ============================================================
 -->
+<style>
+    /* ── Mobile nav overlay ─────────────────────────────────────────────────── */
+    #mobile-nav {
+        position: fixed; inset: 0; z-index: 200;
+        background: var(--ot-bg);
+        display: flex; flex-direction: column;
+        justify-content: center; align-items: flex-start;
+        padding: 0 10vw;
+        transform: translateX(100%);
+        transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+        overflow: hidden;
+    }
+    #mobile-nav.open { transform: translateX(0); }
+
+    #mobile-nav::before {
+        content: '';
+        position: absolute; top: 0; left: 0; bottom: 0; width: 3px;
+        background: #e50914;
+        transform: scaleY(0);
+        transform-origin: top;
+        transition: transform 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s;
+    }
+    #mobile-nav.open::before { transform: scaleY(1); }
+
+    .mobile-nav-link {
+        display: block;
+        font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+        font-size: clamp(2.8rem, 10vw, 5rem);
+        letter-spacing: -0.02em;
+        line-height: 1;
+        color: var(--ot-text);
+        text-decoration: none;
+        text-transform: uppercase;
+        opacity: 0;
+        transform: translateX(40px);
+        transition: opacity 0.45s cubic-bezier(0.16,1,0.3,1),
+                    transform 0.45s cubic-bezier(0.16,1,0.3,1),
+                    color 0.2s ease;
+        margin-bottom: 0.15em;
+    }
+    #mobile-nav.open .mobile-nav-link { opacity: 1; transform: translateX(0); }
+    .mobile-nav-link:nth-child(1) { transition-delay: 0.08s; }
+    .mobile-nav-link:nth-child(2) { transition-delay: 0.14s; }
+    .mobile-nav-link:nth-child(3) { transition-delay: 0.20s; }
+    .mobile-nav-link:nth-child(4) { transition-delay: 0.26s; }
+    .mobile-nav-link:nth-child(5) { transition-delay: 0.32s; }
+    .mobile-nav-link:nth-child(6) { transition-delay: 0.38s; }
+    .mobile-nav-link:hover { color: #e50914; }
+
+    .mobile-nav-socials {
+        position: absolute; bottom: 40px; left: 10vw;
+        display: flex; gap: 24px;
+        opacity: 0; transition: opacity 0.4s ease 0.5s;
+    }
+    #mobile-nav.open .mobile-nav-socials { opacity: 1; }
+
+    /* Hamburger icon animation */
+    #hamburger span {
+        display: block; width: 22px; height: 1.5px;
+        background: var(--ot-text);
+        transition: transform 0.35s cubic-bezier(0.16,1,0.3,1),
+                    opacity 0.25s ease;
+        transform-origin: center;
+    }
+    #hamburger.open span:nth-child(1) { transform: translateY(5px) rotate(45deg); }
+    #hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    #hamburger.open span:nth-child(3) { transform: translateY(-5px) rotate(-45deg); }
+
+    /* Underline nav link animation on desktop */
+    .nav-link-ul {
+        position: relative;
+        font-family: monospace;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--ot-text-muted);
+        text-decoration: none;
+        transition: color 0.2s ease;
+        padding-bottom: 2px;
+    }
+    .nav-link-ul::after {
+        content: '';
+        position: absolute; bottom: -1px; left: 0; right: 0;
+        height: 1px;
+        background: #e50914;
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.25s cubic-bezier(0.16,1,0.3,1);
+    }
+    .nav-link-ul:hover { color: var(--ot-text); }
+    .nav-link-ul:hover::after { transform: scaleX(1); }
+</style>
+
 <nav th:fragment="navbar"
      id="main-navbar"
      class="sticky top-0 z-50 bg-[#0a0a0a] border-b border-[#1a1a1a] transition-all duration-300">
-    <div class="max-w-7xl mx-auto px-6 sm:px-10 h-16 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-6 sm:px-8 h-16 flex items-center justify-between gap-4">
 
-        <!-- Brand — actual handwritten signature image, inverted to white -->
-        <a th:href="@{/}"
-           class="group flex items-center leading-none hover:opacity-70 transition-opacity duration-200">
-            <!--
-              signature.png is the artist's handwritten mark (black ink on white).
-              filter: invert(1) flips it to white-on-transparent for the dark navbar.
-              Place the file at: src/main/resources/static/img/signature.png
-            -->
-            <img th:src="@{/img/signature.png}"
-                 alt="Olly Threads"
-                 style="height:42px; width:auto; filter:invert(1); opacity:0.9;"
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'"/>
-            <!-- Fallback: shown if image hasn't been added yet -->
-            <span style="display:none; font-family:'Pinyon Script',cursive; font-size:2rem; color:#fff; line-height:1;">
+        <!-- Brand wordmark -->
+        <a th:href="@{/}" class="leading-none shrink-0 hover:opacity-75 transition-opacity duration-200">
+            <span style="font-family:'Pinyon Script',cursive; font-size:1.9rem;
+                         color:var(--ot-text); line-height:1; display:inline-block;">
                 Olly Threads
             </span>
         </a>
 
-        <!-- Nav links -->
+        <!-- ── Desktop nav links ── -->
         <ul class="hidden md:flex items-center gap-8 list-none m-0 p-0">
-            <li>
-                <a th:href="@{/shop}"
-                   class="font-mono text-[11px] font-bold tracking-[0.2em] uppercase text-[#555] hover:text-white transition-colors duration-200">
-                    Shop
-                </a>
-            </li>
+            <li><a th:href="@{/shop}"         class="nav-link-ul">Shop</a></li>
+            <li><a th:href="@{/about}"        class="nav-link-ul">About</a></li>
             <li sec:authorize="isAuthenticated()">
-                <a th:href="@{/cart}"
-                   class="relative font-mono text-[11px] font-bold tracking-[0.2em] uppercase text-[#555] hover:text-white transition-colors duration-200">
+                <a th:href="@{/cart}" class="nav-link-ul relative">
                     Cart
                     <span id="cart-count"
-                          class="hidden absolute -top-2 -right-5 bg-[#e50914] text-white text-[9px] font-bold rounded-full w-4 h-4 inline-flex items-center justify-center">
-                        0
-                    </span>
+                          class="hidden absolute -top-2 -right-5 bg-[#e50914] text-white
+                                 text-[9px] font-bold rounded-full w-4 h-4
+                                 inline-flex items-center justify-center">0</span>
                 </a>
             </li>
             <li sec:authorize="isAuthenticated()">
-                <a th:href="@{/account/orders}"
-                   class="font-mono text-[11px] font-bold tracking-[0.2em] uppercase text-[#555] hover:text-white transition-colors duration-200">
-                    My Orders
-                </a>
+                <a th:href="@{/account/orders}" class="nav-link-ul">Orders</a>
             </li>
             <li sec:authorize="hasRole('ADMIN')">
                 <a th:href="@{/admin/dashboard}"
-                   class="font-mono text-[11px] font-bold tracking-[0.2em] uppercase text-[#e50914] hover:text-white transition-colors duration-200">
-                    Admin
-                </a>
+                   style="color:#e50914;" class="nav-link-ul">Admin</a>
             </li>
         </ul>
 
-        <!-- Right controls -->
-        <div class="flex items-center gap-4">
+        <!-- ── Right controls ── -->
+        <div class="flex items-center gap-3 shrink-0">
 
-            <!-- Dark-mode toggle -->
-            <button id="theme-toggle"
-                    onclick="toggleDark()"
-                    aria-label="Toggle dark mode"
-                    class="p-1.5 text-[#444] hover:text-white transition-colors duration-200">
-                <svg class="hidden dark:block w-4 h-4" xmlns="http://www.w3.org/2000/svg"
-                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                          d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.36-.71.71M5.64 18.36l-.71.71M18.36 18.36l-.71-.71M5.64 5.64l-.71-.71M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7z"/>
+            <!-- Cart icon (mobile only) -->
+            <a sec:authorize="isAuthenticated()"
+               th:href="@{/cart}"
+               class="md:hidden relative p-1.5"
+               style="color:var(--ot-text-muted);">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <path d="M16 10a4 4 0 0 1-8 0"/>
                 </svg>
-                <svg class="block dark:hidden w-4 h-4" xmlns="http://www.w3.org/2000/svg"
-                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <span id="cart-count-mobile"
+                      class="hidden absolute -top-0.5 -right-0.5 bg-[#e50914] text-white
+                             text-[8px] font-bold rounded-full w-4 h-4
+                             inline-flex items-center justify-center">0</span>
+            </a>
+
+            <!-- Push notification bell -->
+            <button id="push-bell" data-subscribed="false"
+                    title="Get drop notifications"
+                    style="background:none; border:none; padding:6px;
+                           color:var(--ot-text-muted); transition:color 0.2s ease;">
+                <svg class="bell-active w-4 h-4" style="display:none" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2zm6-6V11a6 6 0 0 0-5-5.91V4a1 1 0 0 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1l-2-2z"/>
+                </svg>
+                <svg class="bell-inactive w-4 h-4" style="display:block" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+            </button>
+
+            <!-- Theme toggle -->
+            <button id="theme-toggle" onclick="toggleDark()"
+                    aria-label="Toggle dark mode" title="Toggle dark / light mode"
+                    style="background:none; border:none; padding:6px;
+                           color:var(--ot-text-muted); transition:color 0.2s ease;">
+                <svg id="icon-sun" width="17" height="17" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor" stroke-width="2" style="display:none;">
+                    <circle cx="12" cy="12" r="4"/>
+                    <path stroke-linecap="round" d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+                <svg id="icon-moon" width="17" height="17" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor" stroke-width="2" style="display:none;">
                     <path stroke-linecap="round" stroke-linejoin="round"
                           d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 1 0 9.79 9.79z"/>
                 </svg>
             </button>
 
-            <sec:authorize access="isAuthenticated()">
-                <form th:action="@{/logout}" method="post" class="m-0">
-                    <button type="submit"
-                            class="font-mono text-[11px] font-bold tracking-[0.2em] uppercase text-[#555] hover:text-white transition-colors duration-200">
-                        Logout
-                    </button>
-                </form>
-            </sec:authorize>
+            <!-- Desktop auth -->
+            <div class="hidden md:flex items-center gap-3">
+                <sec:authorize access="isAuthenticated()">
+                    <form th:action="@{/logout}" method="post" class="m-0">
+                        <button type="submit" class="nav-link-ul">Logout</button>
+                    </form>
+                </sec:authorize>
+                <sec:authorize access="!isAuthenticated()">
+                    <a th:href="@{/login}"  class="nav-link-ul">Login</a>
+                    <a th:href="@{/register}"
+                       class="font-mono text-[11px] font-bold tracking-[0.2em] uppercase
+                              border border-[#e50914] text-[#e50914] px-4 py-2
+                              hover:bg-[#e50914] hover:text-white transition-colors duration-200">
+                        Sign Up
+                    </a>
+                </sec:authorize>
+            </div>
 
-            <sec:authorize access="!isAuthenticated()">
-                <a th:href="@{/login}"
-                   class="font-mono text-[11px] font-bold tracking-[0.2em] uppercase text-[#555] hover:text-white transition-colors duration-200">
-                    Login
-                </a>
-                <a th:href="@{/register}"
-                   class="font-mono text-[11px] font-bold tracking-[0.2em] uppercase text-white border border-[#e50914] px-4 py-2 hover:bg-[#e50914] transition-colors duration-200">
-                    Sign Up
-                </a>
-            </sec:authorize>
+            <!-- Hamburger — mobile only -->
+            <button id="hamburger"
+                    onclick="toggleMobileNav()"
+                    aria-label="Open menu"
+                    class="md:hidden flex flex-col justify-center gap-[5px] p-1.5 ml-1"
+                    style="background:none; border:none;">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
         </div>
     </div>
+</nav>
+
+<!-- ── Full-screen mobile nav overlay ───────────────────────────────────────── -->
+<div id="mobile-nav" role="dialog" aria-modal="true" aria-label="Navigation menu">
+
+    <!-- Close button top-right -->
+    <button onclick="toggleMobileNav()"
+            style="position:absolute; top:20px; right:24px; background:none; border:none;
+                   color:var(--ot-text-muted); font-size:1.5rem; padding:8px;"
+            aria-label="Close menu">✕</button>
+
+    <!-- Primary nav links -->
+    <a th:href="@{/}"            onclick="toggleMobileNav()" class="mobile-nav-link">Home</a>
+    <a th:href="@{/shop}"        onclick="toggleMobileNav()" class="mobile-nav-link">Shop</a>
+    <a th:href="@{/about}"       onclick="toggleMobileNav()" class="mobile-nav-link">About</a>
+    <sec:authorize access="isAuthenticated()">
+        <a th:href="@{/cart}"           onclick="toggleMobileNav()" class="mobile-nav-link">Cart</a>
+        <a th:href="@{/account/orders}" onclick="toggleMobileNav()" class="mobile-nav-link">Orders</a>
+    </sec:authorize>
+    <sec:authorize access="!isAuthenticated()">
+        <a th:href="@{/login}"    onclick="toggleMobileNav()" class="mobile-nav-link">Login</a>
+        <a th:href="@{/register}" onclick="toggleMobileNav()" class="mobile-nav-link" style="color:#e50914;">Sign Up</a>
+    </sec:authorize>
+    <sec:authorize access="hasRole('ADMIN')">
+        <a th:href="@{/admin/dashboard}" onclick="toggleMobileNav()" class="mobile-nav-link" style="color:#e50914;">Admin</a>
+    </sec:authorize>
+
+    <!-- Social strip at bottom -->
+    <div class="mobile-nav-socials">
+        <a href="https://www.tiktok.com/@oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+           style="color:var(--ot-text-muted); font-family:monospace; font-size:10px;
+                  letter-spacing:0.2em; text-transform:uppercase; text-decoration:none;">TikTok</a>
+        <a href="https://www.instagram.com/oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+           style="color:var(--ot-text-muted); font-family:monospace; font-size:10px;
+                  letter-spacing:0.2em; text-transform:uppercase; text-decoration:none;">Instagram</a>
+        <a href="https://x.com/Oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+           style="color:var(--ot-text-muted); font-family:monospace; font-size:10px;
+                  letter-spacing:0.2em; text-transform:uppercase; text-decoration:none;">X</a>
+    </div>
+</div>
 </nav>
 
 <!--
@@ -173,72 +626,264 @@
   ============================================================
 -->
 <footer th:fragment="footer"
-        class="border-t border-[#1a1a1a] bg-[#0a0a0a] py-10 mt-auto">
-    <div class="max-w-7xl mx-auto px-6 sm:px-10 space-y-4">
-        <!-- Top row: wordmark + copyright -->
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span style="font-family:'Pinyon Script',cursive; font-size:1.5rem; color:#333; line-height:1;">
-                Olly Threads
-            </span>
-            <p class="font-mono text-[10px] text-[#333] tracking-[0.2em] uppercase">
-                © 2026 — Original Anime Artist Clothing by @oliver_jin_wang
-            </p>
+        class="border-t border-[#1a1a1a] bg-[#0a0a0a] mt-auto">
+
+    <!-- ── Social strip ─────────────────────────────────────────────────────── -->
+    <div class="border-b border-[#1a1a1a] py-10">
+        <div class="max-w-7xl mx-auto px-6 sm:px-10 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <p class="font-mono text-[10px] tracking-[0.3em] uppercase" style="color:var(--ot-text-muted);">Follow the Artist</p>
+            <div class="flex items-center gap-6">
+
+                <!-- TikTok -->
+                <a href="https://www.tiktok.com/@oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+                   class="font-mono text-[9px] tracking-[0.2em] uppercase hover:text-[#e50914] transition-colors duration-200 flex items-center gap-2" style="color:var(--ot-text-muted);">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76a4.85 4.85 0 0 1-1.01-.07z"/></svg>
+                    TikTok
+                </a>
+
+                <!-- Instagram -->
+                <a href="https://www.instagram.com/oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+                   class="font-mono text-[9px] tracking-[0.2em] uppercase hover:text-[#e50914] transition-colors duration-200 flex items-center gap-2" style="color:var(--ot-text-muted);">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+                    Instagram
+                </a>
+
+                <!-- YouTube -->
+                <a href="https://www.youtube.com/@OliverjinWang" target="_blank" rel="noopener noreferrer"
+                   class="font-mono text-[9px] tracking-[0.2em] uppercase hover:text-[#e50914] transition-colors duration-200 flex items-center gap-2" style="color:var(--ot-text-muted);">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.55A3.02 3.02 0 0 0 .5 6.19 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.81 3.02 3.02 0 0 0 2.12 2.14C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.81zM9.75 15.5v-7l6.25 3.5-6.25 3.5z"/></svg>
+                    YouTube
+                </a>
+
+                <!-- X / Twitter -->
+                <a href="https://x.com/Oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+                   class="font-mono text-[9px] tracking-[0.2em] uppercase hover:text-[#e50914] transition-colors duration-200 flex items-center gap-2" style="color:var(--ot-text-muted);">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    X
+                </a>
+
+                <!-- Threads -->
+                <a href="https://www.threads.net/@oliver_jin_wang" target="_blank" rel="noopener noreferrer"
+                   class="font-mono text-[9px] tracking-[0.2em] uppercase hover:text-[#e50914] transition-colors duration-200 flex items-center gap-2" style="color:var(--ot-text-muted);">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.474 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.856 1.205 8.61.024 12.186 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-.505-1.808-1.403-3.22-2.669-4.2-1.339-1.028-3.138-1.55-5.346-1.565-2.86.02-5.043.87-6.486 2.526C4.665 6.27 3.988 8.56 3.96 12c.028 3.441.706 5.731 2.033 7.107 1.443 1.657 3.624 2.504 6.484 2.526 2.011-.024 3.612-.476 4.938-1.39.909-.629 1.675-1.523 2.252-2.653l1.873.882c-.72 1.43-1.711 2.58-2.931 3.404C16.893 23.18 14.88 23.974 12.186 24zm5.833-14.24c-.107-2.328-1.6-3.72-4.234-3.87-1.79-.104-3.51.571-4.62 1.79-.992 1.1-1.449 2.645-1.356 4.59.083 1.74.686 3.087 1.791 4 1.032.852 2.47 1.28 4.28 1.28h.08c1.27-.007 2.319-.23 3.117-.663.795-.433 1.356-1.083 1.668-1.933.167-.451.255-.923.264-1.41l.01-.784zm-3.01 5.04c-.512.277-1.167.42-1.946.43-1.26-.01-2.22-.31-2.855-.892-.61-.559-.948-1.42-1.009-2.56-.076-1.444.239-2.551.932-3.287.673-.718 1.684-1.078 2.998-1.005 1.657.096 2.513.945 2.58 2.524l.002.043-.003.87c0 .15-.006.3-.016.451-.055.84-.283 1.488-.683 1.933z"/></svg>
+                    Threads
+                </a>
+            </div>
         </div>
-        <!-- Legal links -->
-        <div class="flex flex-wrap items-center justify-center sm:justify-end gap-6 border-t border-[#111] pt-4">
-            <a th:href="@{/privacy-policy}"
-               class="font-mono text-[9px] tracking-[0.2em] uppercase text-[#333] hover:text-[#555] transition-colors duration-200">
-                Privacy Policy
-            </a>
-            <a th:href="@{/terms-of-service}"
-               class="font-mono text-[9px] tracking-[0.2em] uppercase text-[#333] hover:text-[#555] transition-colors duration-200">
-                Terms of Service
-            </a>
-            <a th:href="@{/refund-and-shipping}"
-               class="font-mono text-[9px] tracking-[0.2em] uppercase text-[#333] hover:text-[#555] transition-colors duration-200">
-                Refund &amp; Shipping
-            </a>
+    </div>
+
+    <!-- ── Bottom bar ────────────────────────────────────────────────────────── -->
+    <div class="py-8">
+        <div class="max-w-7xl mx-auto px-6 sm:px-10">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <span style="font-family:'Pinyon Script',cursive; font-size:1.5rem; color:var(--ot-border-2); line-height:1;">
+                    Olly Threads
+                </span>
+                <div class="flex flex-wrap items-center justify-center gap-6">
+                    <a th:href="@{/privacy-policy}"
+                       class="font-mono text-[9px] tracking-[0.2em] uppercase hover:text-[#e50914] transition-colors duration-200" style="color:var(--ot-text-dim);">
+                        Privacy Policy
+                    </a>
+                    <a th:href="@{/terms-of-service}"
+                       class="font-mono text-[9px] tracking-[0.2em] uppercase hover:text-[#e50914] transition-colors duration-200" style="color:var(--ot-text-dim);">
+                        Terms of Service
+                    </a>
+                    <a th:href="@{/refund-and-shipping}"
+                       class="font-mono text-[9px] tracking-[0.2em] uppercase hover:text-[#e50914] transition-colors duration-200" style="color:var(--ot-text-dim);">
+                        Refund &amp; Shipping
+                    </a>
+                    <p class="font-mono text-[9px] tracking-[0.15em] uppercase" style="color:var(--ot-text-dim);">
+                        © 2026 Olly Threads
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 </footer>
 
 <!--
   ============================================================
-  THEME TOGGLE SCRIPT
+  THEME TOGGLE SCRIPT + NEWSLETTER POPUP + SCROLL REVEAL
+  Use: <div th:replace="~{fragments/layout :: themeScript}"></div>
   ============================================================
 -->
-<script th:fragment="themeScript">
-    function toggleDark() {
-        var html = document.documentElement;
-        if (html.classList.contains('dark')) {
-            html.classList.remove('dark');
-            localStorage.setItem('olly-theme', 'light');
-        } else {
-            html.classList.add('dark');
-            localStorage.setItem('olly-theme', 'dark');
-        }
-    }
+<div th:fragment="themeScript">
 
-    // ── Navbar scroll state ──────────────────────────────────────────────────
-    // At the top: clean thin border (#1a1a1a), fully opaque bg.
-    // After 20px scroll: stronger border (#333) + light backdrop-blur for depth.
-    (function () {
-        var navbar = document.getElementById('main-navbar');
-        if (!navbar) return;
-        function onScroll() {
-            if (window.scrollY > 20) {
-                navbar.style.borderBottomColor = '#333';
-                navbar.style.backdropFilter    = 'blur(4px)';
-                navbar.style.backgroundColor   = 'rgba(10,10,10,0.92)';
-            } else {
-                navbar.style.borderBottomColor = '#1a1a1a';
-                navbar.style.backdropFilter    = 'none';
-                navbar.style.backgroundColor   = '#0a0a0a';
+    <!-- ── Newsletter popup (guests only) ──────────────────────────────── -->
+    <div sec:authorize="!isAuthenticated()"
+         id="nl-popup"
+         style="display:none; position:fixed; bottom:32px; right:32px; z-index:9999;
+                width:420px; max-width:calc(100vw - 32px);
+                background:var(--ot-surface); border:1px solid var(--ot-border-2);
+                padding:36px 32px; font-family:monospace;
+                box-shadow:0 16px 64px rgba(0,0,0,0.7);
+                transform:translateY(24px); opacity:0;
+                transition:transform 0.5s cubic-bezier(0.16,1,0.3,1), opacity 0.4s ease;">
+
+        <!-- Close -->
+        <button onclick="dismissPopup()"
+                style="position:absolute; top:12px; right:16px; background:none; border:none;
+                       color:var(--ot-text-muted); font-size:20px; cursor:pointer; line-height:1;"
+                aria-label="Close">✕</button>
+
+        <!-- Form -->
+        <div id="nl-form-wrap">
+            <p style="font-size:10px; letter-spacing:0.3em; text-transform:uppercase; color:#e50914; margin:0 0 10px;">
+                LIMITED OFFER
+            </p>
+            <h3 style="font-size:1.4rem; font-weight:700; color:var(--ot-text); margin:0 0 8px; line-height:1.2;">
+                Save 10% on your first order
+            </h3>
+            <p style="font-size:11px; color:var(--ot-text-muted); margin:0 0 20px; line-height:1.6;">
+                Join the Olly Threads list — early drops, restocks, and exclusive discounts.
+            </p>
+            <form id="nl-form" onsubmit="submitNewsletter(event)" style="display:flex; gap:8px;">
+                <input id="nl-email" type="email" required placeholder="your@email.com"
+                       style="flex:1; background:var(--ot-bg); border:1px solid var(--ot-border-2);
+                              color:var(--ot-text); padding:10px 12px; font-family:monospace;
+                              font-size:11px; outline:none; border-radius:2px;"/>
+                <button type="submit"
+                        style="background:#e50914; color:#fff; border:none; padding:10px 16px;
+                               font-family:monospace; font-size:10px; font-weight:700;
+                               letter-spacing:0.2em; text-transform:uppercase; cursor:pointer;
+                               border-radius:2px; white-space:nowrap;">
+                    GET 10%
+                </button>
+            </form>
+            <p style="font-size:9px; color:var(--ot-text-dim); margin:10px 0 0; letter-spacing:0.1em;">
+                No spam. Unsubscribe any time.
+            </p>
+        </div>
+
+        <!-- Success state -->
+        <div id="nl-success" style="display:none; text-align:center; padding:12px 0;">
+            <p style="font-size:26px; margin:0 0 10px;">⚔</p>
+            <p style="font-size:1rem; font-weight:700; color:var(--ot-text); margin:0 0 6px;">YOU'RE IN.</p>
+            <p style="font-size:11px; color:var(--ot-text-muted); line-height:1.5;">
+                Check your email for your 10% code.
+            </p>
+        </div>
+    </div>
+
+    <!-- ── Scripts ────────────────────────────────────────────────────── -->
+    <script>
+    // ── Newsletter popup ─────────────────────────────────────────────
+    (function() {
+        var popup = document.getElementById('nl-popup');
+        if (!popup) return;
+
+        var dismissed = sessionStorage.getItem('nl-dismissed');
+        if (dismissed) return;
+
+        // Slide up after 8s
+        var t = setTimeout(function() {
+            popup.style.display = 'block';
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    popup.style.transform = 'translateY(0)';
+                    popup.style.opacity = '1';
+                });
+            });
+        }, 8000);
+
+        window.dismissPopup = function() {
+            popup.style.transform = 'translateY(24px)';
+            popup.style.opacity = '0';
+            setTimeout(function() { popup.style.display = 'none'; }, 400);
+            sessionStorage.setItem('nl-dismissed', '1');
+            clearTimeout(t);
+        };
+
+        window.submitNewsletter = function(e) {
+            e.preventDefault();
+            var email = document.getElementById('nl-email').value.trim();
+            if (!email) return;
+            var csrf = document.cookie.split(';').map(function(c) { return c.trim(); })
+                .find(function(c) { return c.startsWith('XSRF-TOKEN='); });
+            csrf = csrf ? decodeURIComponent(csrf.split('=')[1]) : '';
+            fetch('/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-XSRF-TOKEN': csrf },
+                body: new URLSearchParams({ email: email })
+            }).then(function(r) {
+                document.getElementById('nl-form-wrap').style.display = 'none';
+                document.getElementById('nl-success').style.display = 'block';
+                sessionStorage.setItem('nl-dismissed', '1');
+            }).catch(function() {
+                document.getElementById('nl-form-wrap').style.display = 'none';
+                document.getElementById('nl-success').style.display = 'block';
+                sessionStorage.setItem('nl-dismissed', '1');
+            });
+        };
+    })();
+
+    // ── Scroll-reveal (IntersectionObserver) ──────────────────────────
+    (function() {
+        var els = document.querySelectorAll('[data-reveal]');
+        if (!els.length) return;
+
+        if (!('IntersectionObserver' in window)) {
+            // Fallback: show everything immediately
+            els.forEach(function(el) { el.classList.add('revealed'); });
+            return;
+        }
+
+        var observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (!entry.isIntersecting) return;
+                var el = entry.target;
+                var delay = parseInt(
+                    el.dataset.revealDelay || el.dataset.delay || 0, 10
+                );
+                setTimeout(function() {
+                    el.classList.add('revealed');
+                }, delay);
+                observer.unobserve(el);
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -48px 0px'
+        });
+
+        els.forEach(function(el) { observer.observe(el); });
+
+        // Safety net: immediately reveal any elements already in the viewport.
+        // Covers cases where the observer fires before layout is complete.
+        requestAnimationFrame(function() {
+            els.forEach(function(el) {
+                var r = el.getBoundingClientRect();
+                if (r.top < window.innerHeight && r.bottom > 0) {
+                    var d = parseInt(el.dataset.revealDelay || el.dataset.delay || 0, 10);
+                    setTimeout(function() {
+                        el.classList.add('revealed');
+                        observer.unobserve(el);
+                    }, d);
+                }
+            });
+        });
+    })();
+
+    // ── Mobile nav toggle ─────────────────────────────────────────────
+    window.toggleMobileNav = function() {
+        var nav = document.getElementById('mobile-nav');
+        var btn = document.getElementById('hamburger');
+        if (!nav) return;
+        var isOpen = nav.classList.toggle('open');
+        if (btn) btn.classList.toggle('open', isOpen);
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+    };
+
+    // Close mobile nav on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            var nav = document.getElementById('mobile-nav');
+            var btn = document.getElementById('hamburger');
+            if (nav && nav.classList.contains('open')) {
+                nav.classList.remove('open');
+                if (btn) btn.classList.remove('open');
+                document.body.style.overflow = '';
             }
         }
-        window.addEventListener('scroll', onScroll, { passive: true });
-        onScroll(); // initialise correctly on pages that load already scrolled
-    })();
+    });
 </script>
-
-</html>
+</div>

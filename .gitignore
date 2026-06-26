@@ -31,7 +31,8 @@ Thumbs.db
 logs/
 
 # Environment / secrets — NEVER commit these
-application-prod.properties
+# application-prod.properties is SAFE to commit — it only has ${VAR} placeholders, no real secrets
+application-local.properties
 *.env
 .env
 

@@ -19,13 +19,16 @@ public class HomeController {
 
     @GetMapping("/")
     public String home(Model model) {
-        // Pull the 3 newest active products for the Latest Arrivals section
         List<Product> latest = productService
                 .findFiltered(null, null, null, null,
                         PageRequest.of(0, 3, Sort.by("createdDate").descending()))
                 .getContent();
-
         model.addAttribute("latestProducts", latest);
         return "home";
+    }
+
+    @GetMapping("/about")
+    public String about() {
+        return "about";
     }
 }

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Discount Codes')}"></head>
+<body class="antialiased">
+
+<div th:replace="~{fragments/layout :: navbar}"></div>
+
+<main class="min-h-screen pt-24 pb-16" style="background:var(--ot-bg);">
+<div class="max-w-5xl mx-auto px-4 py-10">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-2xl font-black tracking-tight" style="color:var(--ot-text);">Discount Codes</h1>
+      <p class="text-sm mt-1" style="color:var(--ot-text-muted);">Create and manage promotional codes. Single-use codes are generated automatically for welcome and post-purchase emails.</p>
+    </div>
+    <a href="/admin/dashboard" class="text-sm underline" style="color:var(--ot-text-muted);">← Dashboard</a>
+  </div>
+
+  <!-- Flash messages -->
+  <div th:if="${successMsg}" class="mb-6 px-4 py-3 rounded text-sm font-mono bg-[#00ff88]/10 border border-[#00ff88]/30 text-[#00cc66]"
+       th:text="${successMsg}"></div>
+  <div th:if="${errorMsg}" class="mb-6 px-4 py-3 rounded text-sm font-mono bg-[#e50914]/10 border border-[#e50914]/30 text-[#e50914]"
+       th:text="${errorMsg}"></div>
+
+  <!-- Create new code -->
+  <div class="rounded-xl border mb-10 p-6" style="background:var(--ot-surface);border-color:var(--ot-border);">
+    <h2 class="text-sm font-mono font-bold uppercase tracking-widest mb-5" style="color:var(--ot-text-muted);">Create New Code</h2>
+    <form action="/admin/discounts/create" method="post" class="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+      <div class="col-span-2 sm:col-span-1">
+        <label class="block text-xs font-mono mb-1" style="color:var(--ot-text-muted);">CODE</label>
+        <input type="text" name="code" required placeholder="e.g. LAUNCH20"
+               class="w-full rounded px-3 py-2 text-sm font-mono uppercase"
+               style="background:var(--ot-bg);border:1px solid var(--ot-border);color:var(--ot-text);">
+      </div>
+
+      <div>
+        <label class="block text-xs font-mono mb-1" style="color:var(--ot-text-muted);">TYPE</label>
+        <select name="type" class="w-full rounded px-3 py-2 text-sm"
+                style="background:var(--ot-bg);border:1px solid var(--ot-border);color:var(--ot-text);">
+          <option value="PERCENT">Percent (%)</option>
+          <option value="FIXED">Fixed ($)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-mono mb-1" style="color:var(--ot-text-muted);">VALUE</label>
+        <input type="number" name="value" required min="0.01" step="0.01" placeholder="10.00"
+               class="w-full rounded px-3 py-2 text-sm"
+               style="background:var(--ot-bg);border:1px solid var(--ot-border);color:var(--ot-text);">
+      </div>
+
+      <div>
+        <label class="block text-xs font-mono mb-1" style="color:var(--ot-text-muted);">USAGE LIMIT <span style="color:var(--ot-text-dim);">(blank = unlimited)</span></label>
+        <input type="number" name="usageLimit" min="1" placeholder="unlimited"
+               class="w-full rounded px-3 py-2 text-sm"
+               style="background:var(--ot-bg);border:1px solid var(--ot-border);color:var(--ot-text);">
+      </div>
+
+      <div>
+        <label class="block text-xs font-mono mb-1" style="color:var(--ot-text-muted);">MIN ORDER ($)</label>
+        <input type="number" name="minOrderValue" min="0" step="0.01" placeholder="0.00"
+               class="w-full rounded px-3 py-2 text-sm"
+               style="background:var(--ot-bg);border:1px solid var(--ot-border);color:var(--ot-text);">
+      </div>
+
+      <div>
+        <label class="block text-xs font-mono mb-1" style="color:var(--ot-text-muted);">EXPIRES (date)</label>
+        <input type="date" name="expiresAt"
+               class="w-full rounded px-3 py-2 text-sm"
+               style="background:var(--ot-bg);border:1px solid var(--ot-border);color:var(--ot-text);">
+      </div>
+
+      <div class="col-span-2 sm:col-span-3">
+        <label class="block text-xs font-mono mb-1" style="color:var(--ot-text-muted);">DESCRIPTION (internal)</label>
+        <input type="text" name="description" placeholder="e.g. Launch week promo"
+               class="w-full rounded px-3 py-2 text-sm"
+               style="background:var(--ot-bg);border:1px solid var(--ot-border);color:var(--ot-text);">
+      </div>
+
+      <div class="col-span-2 sm:col-span-3">
+        <button type="submit"
+                class="px-6 py-2 text-sm font-mono font-bold rounded bg-[#e50914] text-white hover:opacity-90 transition-opacity">
+          CREATE CODE
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Code list -->
+  <div class="rounded-xl border overflow-hidden" style="border-color:var(--ot-border);">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-xs font-mono uppercase tracking-widest border-b" style="background:var(--ot-surface);border-color:var(--ot-border);">
+          <th class="px-4 py-3 text-left" style="color:var(--ot-text-muted);">Code</th>
+          <th class="px-4 py-3 text-left" style="color:var(--ot-text-muted);">Type</th>
+          <th class="px-4 py-3 text-left" style="color:var(--ot-text-muted);">Value</th>
+          <th class="px-4 py-3 text-left" style="color:var(--ot-text-muted);">Used / Limit</th>
+          <th class="px-4 py-3 text-left" style="color:var(--ot-text-muted);">Expires</th>
+          <th class="px-4 py-3 text-left" style="color:var(--ot-text-muted);">Description</th>
+          <th class="px-4 py-3 text-center" style="color:var(--ot-text-muted);">Active</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="dc : ${codes}" class="border-b transition-colors hover:bg-white/5"
+            style="border-color:var(--ot-border);"
+            th:classappend="${!dc.active} ? 'opacity-50' : ''">
+          <!-- Code -->
+          <td class="px-4 py-3">
+            <span class="font-mono font-bold text-[#e50914]" th:text="${dc.code}"></span>
+            <span th:if="${dc.autoGenerated}" class="ml-2 text-[10px] font-mono px-1.5 py-0.5 rounded"
+                  style="background:var(--ot-border);color:var(--ot-text-muted);">AUTO</span>
+          </td>
+          <!-- Type -->
+          <td class="px-4 py-3 font-mono text-xs" style="color:var(--ot-text-muted);" th:text="${dc.type}"></td>
+          <!-- Value -->
+          <td class="px-4 py-3 font-mono" style="color:var(--ot-text);">
+            <span th:if="${dc.type.name() == 'PERCENT'}" th:text="${dc.value} + '%'"></span>
+            <span th:if="${dc.type.name() == 'FIXED'}" th:text="'$' + ${dc.value}"></span>
+          </td>
+          <!-- Used / Limit -->
+          <td class="px-4 py-3 font-mono text-xs" style="color:var(--ot-text);">
+            <span th:text="${dc.usedCount}"></span>
+            <span style="color:var(--ot-text-muted);"> / </span>
+            <span th:text="${dc.usageLimit != null ? dc.usageLimit : 'unlimited'}"></span>
+          </td>
+          <!-- Expires -->
+          <td class="px-4 py-3 text-xs" style="color:var(--ot-text-muted);">
+            <span th:if="${dc.expiresAt != null}" th:text="${#temporals.format(dc.expiresAt, 'MMM d, yyyy')}"></span>
+            <span th:if="${dc.expiresAt == null}" style="color:var(--ot-text-dim);">Never</span>
+          </td>
+          <!-- Description -->
+          <td class="px-4 py-3 text-xs max-w-[200px] truncate" style="color:var(--ot-text-muted);"
+              th:text="${dc.description}"></td>
+          <!-- Toggle active -->
+          <td class="px-4 py-3 text-center">
+            <button onclick="toggleCode(this)"
+                    th:data-id="${dc.id}"
+                    th:class="${dc.active} ? 'text-[#00cc66] hover:text-[#e50914]' : 'text-[#e50914] hover:text-[#00cc66]'"
+                    class="text-xs font-mono transition-colors cursor-pointer"
+                    th:text="${dc.active} ? 'ON' : 'OFF'"></button>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(codes)}">
+          <td colspan="7" class="px-4 py-8 text-center text-sm" style="color:var(--ot-text-muted);">
+            No discount codes yet. Create one above.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="mt-4 text-xs" style="color:var(--ot-text-dim);">
+    AUTO codes are generated automatically for newsletter sign-ups and post-purchase emails. They are single-use.
+  </p>
+
+</div>
+</main>
+
+<script>
+async function toggleCode(btn) {
+  const id = btn.dataset.id;
+  const csrf = document.cookie.split(';').map(c=>c.trim())
+                 .find(c=>c.startsWith('XSRF-TOKEN='))
+                 ?.split('=')[1];
+  const res = await fetch(`/admin/discounts/${id}/toggle`, {
+    method: 'POST',
+    headers: { 'X-XSRF-TOKEN': decodeURIComponent(csrf || '') }
+  });
+  if (res.ok) {
+    const isOn = btn.textContent.trim() === 'ON';
+    btn.textContent = isOn ? 'OFF' : 'ON';
+    btn.className = isOn
+      ? 'text-xs font-mono transition-colors cursor-pointer text-[#e50914] hover:text-[#00cc66]'
+      : 'text-xs font-mono transition-colors cursor-pointer text-[#00cc66] hover:text-[#e50914]';
+    btn.closest('tr').classList.toggle('opacity-50', isOn);
+  }
+}
+</script>
+
+<div th:replace="~{fragments/layout :: footer}"></div>
+<div th:replace="~{fragments/layout :: themeScript}"></div>
+
+</body>
+</html>

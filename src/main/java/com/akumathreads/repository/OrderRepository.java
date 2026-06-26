@@ -80,4 +80,37 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * Light version — no item join fetch, used for the admin user-detail panel.
      */
     List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
+
+     // ── Edition / scarcity helpers ────────────────────────────────────────────
+
+    /**
+     * Total units of a product sold across all orders.
+     * Used to display "Edition X of Y" on the product page.
+     */
+    @Query("SELECT COALESCE(SUM(i.quantity), 0) FROM OrderItem i WHERE i.variant.product.id = :productId")
+    long countUnitsSoldByProductId(@Param("productId") Long productId);
+
+    /**
+     * Total units sold per product for a batch of product IDs.
+     * Returns rows of [productId (Long), totalSold (Long)].
+     * Products with zero sales are absent from the result.
+     */
+    @Query("SELECT i.variant.product.id, COALESCE(SUM(i.quantity), 0) " +
+           "FROM OrderItem i " +
+           "WHERE i.variant.product.id IN :ids " +
+           "GROUP BY i.variant.product.id")
+    List<Object[]> countUnitsSoldByProductIds(@Param("ids") List<Long> ids);
+
+    // ── Stripe webhook lookup ─────────────────────────────────────────────────
+
+    Optional<Order> findByPaymentIntentId(String paymentIntentId);
+
+    // ── Abandoned cart detection ──────────────────────────────────────────────
+
+    /**
+     * Returns user IDs that placed an order within the given time window.
+     * Used to exclude recent buyers from abandoned-cart recovery emails.
+     */
+    @Query("SELECT DISTINCT o.user.id FROM Order o WHERE o.createdAt > :since")
+    List<Long> findUserIdsWithRecentOrders(@Param("since") java.time.LocalDateTime since);
 }

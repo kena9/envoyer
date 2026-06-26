@@ -11,6 +11,7 @@ import com.akumathreads.repository.ProductVariantRepository;
 import com.akumathreads.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +37,7 @@ import java.util.stream.Collectors;
  * (Spring's default) AND any checked exceptions that might propagate through the call stack.
  */
 @Service
+@Slf4j
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class OrderService {
@@ -84,7 +86,10 @@ public class OrderService {
                             String shipAddress,
                             String shipCity,
                             String shipState,
-                            String shipZip) {
+                            String shipZip,
+                            String couponCode,
+                            java.math.BigDecimal discountAmount,
+                            String paymentIntentId) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + userId));
@@ -129,12 +134,17 @@ public class OrderService {
         // ── Step 4: Persist Order + OrderItems ───────────────────────────────
         Order order = new Order();
         order.setUser(user);
-        order.setStatus(Order.Status.PENDING);
+        order.setStatus(Order.Status.PAID);
+        order.setPaymentIntentId(paymentIntentId);
         order.setShipName(shipName);
         order.setShipAddress(shipAddress);
         order.setShipCity(shipCity);
         order.setShipState(shipState);
         order.setShipZip(shipZip);
+        if (couponCode != null && !couponCode.isBlank()) {
+            order.setCouponCode(couponCode);
+            order.setDiscountAmount(discountAmount != null ? discountAmount : java.math.BigDecimal.ZERO);
+        }
 
         List<OrderItem> orderItems  = new ArrayList<>();
         BigDecimal      runningTotal = BigDecimal.ZERO;
@@ -159,7 +169,12 @@ public class OrderService {
         }
 
         order.setItems(orderItems);
-        order.setTotal(runningTotal.setScale(2, RoundingMode.HALF_UP));
+        // Apply discount
+        BigDecimal discount = (discountAmount != null) ? discountAmount : java.math.BigDecimal.ZERO;
+        BigDecimal finalTotal = runningTotal.subtract(discount)
+                .max(java.math.BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+        order.setTotal(finalTotal);
 
         return orderRepository.save(order);
     }
@@ -206,6 +221,23 @@ public class OrderService {
                 .orElseThrow(() -> new EntityNotFoundException("Order not found: " + orderId));
         order.setStatus(newStatus);
         return orderRepository.save(order);
+    }
+
+    /**
+     * Called by the Stripe webhook when payment_intent.succeeded fires.
+     * Transitions the order from PAID to PROCESSING (ready for fulfillment).
+     */
+    @Transactional(readOnly = false, rollbackFor = Exception.class)
+    public void markPaidByPaymentIntent(String paymentIntentId) {
+        orderRepository.findByPaymentIntentId(paymentIntentId).ifPresentOrElse(order -> {
+            if (order.getStatus() == Order.Status.PAID
+                    || order.getStatus() == Order.Status.PENDING) {
+                order.setStatus(Order.Status.PROCESSING);
+                orderRepository.save(order);
+                log.info("[Order] Order {} marked PROCESSING via Stripe webhook PI={}",
+                        order.getId(), paymentIntentId);
+            }
+        }, () -> log.warn("[Order] No order found for PI={}", paymentIntentId));
     }
 
     // ── Read operations ──────────────────────────────────────────────────────

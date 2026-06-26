@@ -29,13 +29,16 @@ public class SecurityConfig {
 
     private static final String CSP =
             "default-src 'self'; " +
-            // Tailwind CDN is our only permitted external script source.
-            // In production, replace with a compiled Tailwind build and remove this entry.
-            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; " +
-            // 'unsafe-inline' required for Tailwind's runtime JIT style injection.
+            // script-src: Tailwind CDN (replace with compiled build before launch) + Stripe.js
+            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://js.stripe.com; " +
+            // 'unsafe-inline' required for Tailwind runtime JIT; remove once Tailwind is self-hosted.
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
             "img-src 'self' data: https:; " +
             "font-src 'self' https://fonts.gstatic.com; " +
+            // Stripe mounts a cross-origin iframe for the card element
+            "frame-src https://js.stripe.com https://hooks.stripe.com; " +
+            // Stripe.js fetches confirmations from api.stripe.com
+            "connect-src 'self' https://api.stripe.com; " +
             "frame-ancestors 'none'; " +
             "form-action 'self'";
 
@@ -60,6 +63,9 @@ public class SecurityConfig {
             .csrf(csrf -> csrf
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                // Stripe webhook: server-to-server call — Stripe can't send a CSRF token.
+                // Security is provided instead by HMAC signature verification in the controller.
+                .ignoringRequestMatchers("/stripe/webhook")
             )
 
             // ── Authorization rules ──────────────────────────────────────────
@@ -67,13 +73,24 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/", "/shop/**", "/product/**",
                     "/register", "/login",
+                    "/about", "/about/**",
                     "/privacy-policy", "/terms-of-service", "/refund-and-shipping",
-                    "/css/**", "/js/**", "/img/**", "/images/**", "/error"
+                    "/sitemap.xml", "/robots.txt",
+                    "/og-image.svg", "/og-image.png",
+                    "/subscribe", "/unsubscribe",
+                    "/forgot-password", "/reset-password",
+                    "/css/**", "/js/**", "/img/**", "/images/**", "/manifest.webmanifest",
+                    "/stripe/webhook",
+                    "/webjars/**", "/error"
                 ).permitAll()
+                // Discount validation — authenticated users only (already covered by anyRequest but explicit here)
+                .requestMatchers("/api/discount/validate").authenticated()
                 // Cart API — guests may add items; login is required only at checkout
                 .requestMatchers("/api/cart/**").permitAll()
-                // Cart page is auth-only (consistent: navbar Cart link is auth-only too)
-                .requestMatchers("/cart", "/account/**", "/checkout/**", "/orders/**", "/order/**").authenticated()
+                // /cart is public so guests can review their cart before login.
+                // Auth gate stays at /checkout — that is where payment intent requires identity.
+                .requestMatchers("/cart").permitAll()
+                .requestMatchers("/account/**", "/checkout/**", "/orders/**", "/order/**").authenticated()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
